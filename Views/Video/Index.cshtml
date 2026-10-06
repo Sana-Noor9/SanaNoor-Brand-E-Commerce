@@ -1,0 +1,52 @@
+﻿@model IEnumerable<SanaNoor_Brand.Models.ProductVideo>
+
+<div class="container mt-4">
+    <h2>Product Videos</h2>
+
+    <div class="card p-3 mb-4">
+        <h4>Add New Video</h4>
+        <form asp-action="Upload" method="post" enctype="multipart/form-data" class="row g-3">
+            <div class="col-md-4">
+                <label>Product ID</label>
+                <input type="number" name="productId" class="form-control" required />
+            </div>
+            <div class="col-md-4">
+                <label>Select Video File</label>
+                <input type="file" name="videoFile" class="form-control" accept="video/*" required />
+            </div>
+            <div class="col-md-4">
+                <label>&nbsp;</label><br />
+                <button type="submit" class="btn btn-primary">Upload Video</button>
+            </div>
+        </form>
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Video</th>
+                <th>Product</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <video width="150" controls>
+                            <source src="@item.VideoPath" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </td>
+                    <td>@item.Product?.Name (ID: @item.ProductId)</td>
+                    <td>
+                        <a asp-action="Delete" asp-route-id="@item.ProductVideoId"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('Are you sure?')">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

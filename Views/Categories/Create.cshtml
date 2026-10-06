@@ -1,0 +1,73 @@
+﻿@model SanaNoor_Brand.Models.Category
+
+@{
+    ViewData["Title"] = "Create Category";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="text-center mb-4">Create Category</h3>
+
+                    <form asp-action="Create" enctype="multipart/form-data" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                        <span asp-validation-for="ParentCategoryId" class="text-danger"></span>
+                        <input type="hidden" asp-for="Slug" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Category Name</label>
+                            <input asp-for="CategoryName" class="form-control" placeholder="Enter category name" />
+                            <span asp-validation-for="CategoryName" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="ParentCategoryId">Parent Category</label>
+                            <select asp-for="ParentCategoryId"
+                                    class="form-control"
+                                    asp-items="ViewBag.ParentCategoryId">
+                                <option value="">-- Select Parent Category --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Category Image</label>
+                            <input type="file" name="imageFile" id="imageInput" class="form-control" accept="image/*" onchange="previewImage(event)" />
+                            <small class="text-muted">Recommended size: 500x500px</small>
+
+                            <div class="mt-2 text-center">
+                                <img id="imgPreview" src="#" alt="Preview" style="max-width: 150px; display: none; border-radius: 8px; border: 1px solid #ddd;" />
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-success">Save</button>
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Image preview dikhane ke liye chota sa script
+        function previewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function(){
+                var output = document.getElementById('imgPreview');
+                output.src = reader.result;
+                output.style.display = "inline-block";
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    </script>
+}

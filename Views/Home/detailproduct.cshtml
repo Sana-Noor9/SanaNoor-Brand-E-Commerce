@@ -1,0 +1,575 @@
+﻿@model SanaNoor_Brand.Models.Product
+@{
+    ViewData["Title"] = Model.Name;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Tamam images collect karo (tamam rangon se)
+    var allImages = Model.ProductColors?
+        .SelectMany(pc => pc.Images ?? Enumerable.Empty<ProductImage>())
+        .OrderBy(i => i.DisplayOrder)
+        .ToList() ?? new List<ProductImage>();
+
+    // Helper function jo sahi image URL banaye
+    string GetImageUrl(string imagePath)
+    {
+        if (string.IsNullOrEmpty(imagePath))
+            return Url.Content("~/uploads/products/default.jpg");
+
+        if (imagePath.StartsWith("/"))
+            return imagePath;
+
+        return Url.Content("~/uploads/products/" + imagePath);
+    }
+
+    // Main image ka path
+    var mainImagePath = allImages.FirstOrDefault()?.ImagePath ?? "";
+    var mainImageUrl = !string.IsNullOrEmpty(mainImagePath) ? GetImageUrl(mainImagePath) : Url.Content("~/Website/assets/images/products/single/1.jpg");
+
+    // Pehle color ki jhalak
+    var defaultColor = Model.ProductColors?.FirstOrDefault();
+
+    // Size ka pehla option (agar Sizes mein comma-separated hain)
+    var sizeList = defaultColor?.Sizes?.Split(',', StringSplitOptions.RemoveEmptyEntries);
+    var firstSize = sizeList?.FirstOrDefault()?.Trim() ?? "S";
+
+    // ========== DISCOUNT CALCULATIONS ==========
+    var hasDiscount = Model.HasDiscount;
+    var originalPrice = Model.Price;
+    var discountedPrice = hasDiscount ? Model.GetDiscountedPrice() : originalPrice;
+    var discountAmount = hasDiscount ? Model.GetDiscountAmount() : 0;
+    var discountDisplay = "";
+
+    if (hasDiscount && Model.Discount != null)
+    {
+        discountDisplay = Model.Discount.GetDisplayValue();
+    }
+
+    var allColors = Model.ProductColors?.ToList() ?? new List<ProductColor>();
+}
+
+<style>
+    .breadcrumb-nav {
+        background: #f8f8f8;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+    .product-title {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .product-brand {
+        color: #777;
+        margin-bottom: 10px;
+    }
+
+    .product-price {
+        font-size: 22px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 18px;
+        font-weight: normal;
+        margin-right: 10px;
+    }
+
+    .discounted-price {
+        color: #e53935;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .discount-badge {
+        display: inline-block;
+        background-color: #e53935;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+
+    .savings-text {
+        color: #4CAF50;
+        font-size: 14px;
+        margin-top: 8px;
+        font-weight: 500;
+    }
+
+    .product-meta {
+        margin-bottom: 15px;
+    }
+
+        .product-meta p {
+            margin-bottom: 5px;
+        }
+
+        .product-meta strong {
+            font-weight: 600;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 25px 0 10px;
+        text-transform: uppercase;
+    }
+
+    .detail-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px;
+    }
+
+        .detail-list li {
+            margin-bottom: 8px;
+        }
+
+        .detail-list strong {
+            font-weight: 600;
+            min-width: 130px;
+            display: inline-block;
+        }
+
+    .btn-custom {
+        padding: 12px 30px;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-block;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .btn-cart {
+        background-color: #333;
+        color: white;
+        margin-right: 10px;
+    }
+
+        .btn-cart:hover {
+            background-color: #555;
+            color: white;
+            text-decoration: none;
+        }
+
+    .btn-wishlist {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+        .btn-wishlist:hover {
+            background-color: #e5e5e5;
+            color: #333;
+            text-decoration: none;
+        }
+
+    .contact-info {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+
+    .badge-discount {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: #e53935;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 25px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 10;
+    }
+
+    .price-container {
+        margin-bottom: 20px;
+    }
+
+    /* Color swatches */
+    .color-swatch-section {
+        margin-bottom: 20px;
+    }
+
+    .color-swatch-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .color-swatch-name {
+        color: #777;
+        font-weight: normal;
+        text-transform: none;
+    }
+
+    .color-swatches {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .color-swatch {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        display: inline-block;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+        .color-swatch:hover,
+        .color-swatch.active {
+            border-color: #333;
+            transform: scale(1.1);
+        }
+
+    /* Shirt/Trouser/Dupatta breakdown */
+    .fabric-piece {
+        margin-bottom: 10px;
+    }
+
+        .fabric-piece strong {
+            display: inline-block;
+            min-width: 90px;
+        }
+</style>
+
+<main class="main">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="@Url.Action("Allproduct", "Home")">Products</a></li>
+                <li class="breadcrumb-item active">@Model.Name</li>
+            </ol>
+        </div>
+    </nav>
+
+    <div class="page-content">
+        <div class="container">
+            <div class="product-details-top">
+                <div class="row">
+                    <!-- Left Column - Images -->
+                    <div class="col-md-6">
+                        <div class="product-gallery position-relative">
+                            @if (hasDiscount)
+                            {
+                                <div class="badge-discount">
+                                    @discountDisplay OFF
+                                </div>
+                            }
+
+                            <figure class="product-main-image">
+                                <img id="mainImage" src="@mainImageUrl" alt="@Model.Name" class="img-fluid" style="width: 100%;" />
+                            </figure>
+
+                            @if (allImages.Any())
+                            {
+                                <div class="product-image-gallery" id="thumbGallery" style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                                    @foreach (var img in allImages.Take(5))
+                                    {
+                                        var thumbUrl = GetImageUrl(img.ImagePath);
+                                        <a href="#" data-color-id="@img.ProductColorId" onclick="document.getElementById('mainImage').src='@thumbUrl'; return false;">
+                                            <img src="@thumbUrl" alt="thumbnail" style="width: 70px; height: 70px; object-fit: cover; border: 1px solid #ddd;" />
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Product Details -->
+                    <div class="col-md-6">
+                        <div class="product-details">
+                            <h1 class="product-title">@Model.Name</h1>
+
+                            @if (!string.IsNullOrEmpty(Model.Brand))
+                            {
+                                <p class="product-brand"><strong>Brand:</strong> @Model.Brand</p>
+                            }
+
+                            <!-- PRICE WITH DISCOUNT -->
+                            <div class="price-container">
+                                @if (hasDiscount)
+                                {
+                                    <div class="product-price">
+                                        <span class="original-price">₹@originalPrice.ToString("N0")</span>
+                                        <span class="discounted-price">₹@discountedPrice.ToString("N0")</span>
+                                        <span class="discount-badge">@discountDisplay OFF</span>
+                                    </div>
+                                    <div class="savings-text">
+                                        <i class="fas fa-save"></i> You save: ₹@discountAmount.ToString("N0")
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="product-price">
+                                        <span>₹@originalPrice.ToString("N0")</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- COLOR SWATCHES -->
+                            @if (allColors.Any())
+                            {
+                                <div class="color-swatch-section">
+                                    <span class="color-swatch-label">
+                                        Color: <span class="color-swatch-name" id="selectedColorName">@defaultColor?.ColorName</span>
+                                    </span>
+                                    <div class="color-swatches">
+                                        @foreach (var color in allColors)
+                                        {
+                                            var firstColorImage = color.Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault();
+                                            var colorImageUrl = firstColorImage != null ? GetImageUrl(firstColorImage.ImagePath) : mainImageUrl;
+
+                                            <a href="#"
+                                               class="color-swatch @(color.ProductColorId == defaultColor?.ProductColorId ? "active" : "")"
+                                               style="background: @(color.ColorCode ?? "#000000");"
+                                               title="@color.ColorName"
+                                               data-color-id="@color.ProductColorId"
+                                               data-color-name="@color.ColorName"
+                                               data-image="@colorImageUrl"
+                                               onclick="selectColor(this); return false;">
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="product-meta">
+                                <p><strong>Size:</strong> @firstSize</p>
+                                @if (!string.IsNullOrEmpty(Model.Barcode))
+                                {
+                                    <p><strong>Barcode:</strong> @Model.Barcode</p>
+                                }
+                                <p>
+                                    <strong>Availability:</strong>
+                                    @if (Model.StockQuantity > 0)
+                                    {
+                                        <span class="text-success">In Stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger">Out of Stock</span>
+                                    }
+                                </p>
+                                <p><strong>Shipping:</strong> Free</p>
+                            </div>
+
+                            <hr />
+
+                            <!-- DESCRIPTION section -->
+                            <h5 class="section-title">DESCRIPTION</h5>
+                            @if (!string.IsNullOrEmpty(Model.DesignCode))
+                            {
+                                <p><strong>Design:</strong> @Model.DesignCode</p>
+                            }
+                            <p><strong>Color:</strong> <span id="descColorName">@(defaultColor?.ColorName ?? "N/A")</span></p>
+                            <p><strong>Fabric:</strong> @(Model.Fabric ?? "N/A")</p>
+
+                            @if (!string.IsNullOrEmpty(Model.FullDescription))
+                            {
+                                <p>@Html.Raw(Model.FullDescription)</p>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Occasion) || !string.IsNullOrEmpty(Model.ProductType))
+                            {
+                                <ul class="detail-list">
+                                    @if (!string.IsNullOrEmpty(Model.Occasion))
+                                    {
+                                        <li><strong>Style:</strong> @Model.Occasion</li>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.ProductType))
+                                    {
+                                        <li><strong>Ready To Wear:</strong> @Model.ProductType</li>
+                                    }
+                                </ul>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Disclaimer))
+                            {
+                                <p class="text-muted small"><em>@Model.Disclaimer</em></p>
+                            }
+
+                            <!-- SHIRT / TROUSER / DUPATTA BREAKDOWN -->
+                            @if (!string.IsNullOrEmpty(Model.ShirtFabric) || !string.IsNullOrEmpty(Model.TrouserFabric) || !string.IsNullOrEmpty(Model.DupattaFabric))
+                            {
+                                @if (!string.IsNullOrEmpty(Model.ShirtFabric) || Model.ShirtLength.HasValue || Model.ShirtQuantity.HasValue)
+                                {
+                                    <div class="fabric-piece">
+                                        <h6 class="mb-1"><strong>Shirt</strong></h6>
+                                        <p class="mb-0">
+                                            @(Model.ShirtFabric ?? "")
+                                            @if (Model.ShirtQuantity.HasValue)
+                                            {
+                                                @($" ({Model.ShirtQuantity}M)")
+                                            }
+                                            else if (Model.ShirtLength.HasValue)
+                                            {
+                                                @($" - Length: {Model.ShirtLength}\"")
+                                            }
+                                        </p>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(Model.DupattaFabric) || Model.DupattaLength.HasValue || Model.DupattaQuantity.HasValue)
+                                {
+                                    <div class="fabric-piece">
+                                        <h6 class="mb-1"><strong>Dupatta</strong></h6>
+                                        <p class="mb-0">
+                                            @(Model.DupattaFabric ?? "")
+                                            @if (Model.DupattaQuantity.HasValue)
+                                            {
+                                                @($" ({Model.DupattaQuantity}M)")
+                                            }
+                                            else if (Model.DupattaLength.HasValue)
+                                            {
+                                                @($" - Length: {Model.DupattaLength}\"")
+                                            }
+                                        </p>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(Model.TrouserFabric) || Model.TrouserLength.HasValue || Model.TrouserQuantity.HasValue)
+                                {
+                                    <div class="fabric-piece">
+                                        <h6 class="mb-1"><strong>Trouser</strong></h6>
+                                        <p class="mb-0">
+                                            @(Model.TrouserFabric ?? "")
+                                            @if (Model.TrouserQuantity.HasValue)
+                                            {
+                                                @($" ({Model.TrouserQuantity}M)")
+                                            }
+                                            else if (Model.TrouserLength.HasValue)
+                                            {
+                                                @($" - Length: {Model.TrouserLength}\"")
+                                            }
+                                        </p>
+                                    </div>
+                                }
+                            }
+
+                            <h5 class="section-title">FABRIC INGREDIENTS</h5>
+                            <ul class="detail-list">
+                                <li><strong>Material:</strong> @(Model.Fabric ?? "N/A")</li>
+                                <li><strong>Care:</strong> @(Model.CareInstruction ?? "Gentle machine wash cold")</li>
+                            </ul>
+
+                            <!-- Action Buttons -->
+                            <div class="product-details-action" style="margin: 20px 0;">
+                                <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden" name="productId" value="@Model.ProductId" />
+                                    <input type="hidden" id="selectedColorIdInput" name="productColorId" value="@(defaultColor?.ProductColorId ?? 0)" />
+                                    <input type="hidden" name="size" value="@firstSize" />
+                                    <input type="hidden" name="quantity" value="1" />
+
+                                    <button type="submit" class="btn-custom btn-cart">
+                                        ADD TO CART
+                                    </button>
+                                </form>
+                                <a href="#" class="btn-custom btn-wishlist wishlist-btn" data-product-id="@Model.ProductId">WISHLIST</a>
+                            </div>
+
+                            <div style="margin-top: 10px;">
+                                <a href="#" class="btn-custom btn-cart" style="background-color: #666;">ADDITIONAL INFORMATION</a>
+                                <a href="#" class="btn-custom btn-cart" style="background-color: #666;">SHIPPING INFO</a>
+                            </div>
+
+                            <!-- Contact Us -->
+                            <div class="contact-info">
+                                <h5>CONTACT US</h5>
+                                <p>Email: info@mollabootstrap.com</p>
+                                <p>Phone: +1 (800) 500-1234</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+@section Scripts {
+    <script>
+        function selectColor(el) {
+            // Main image badlo
+            document.getElementById('mainImage').src = el.getAttribute('data-image');
+
+            // Color name text update karo
+            const colorName = el.getAttribute('data-color-name');
+            document.getElementById('selectedColorName').innerText = colorName;
+            document.getElementById('descColorName').innerText = colorName;
+
+            // Add to Cart form ka hidden input update karo (zaroori bug fix)
+            document.getElementById('selectedColorIdInput').value = el.getAttribute('data-color-id');
+
+            // Active swatch highlight karo
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        // Wishlist button (product detail page ke liye)
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.wishlist-btn');
+            if (!btn) return;
+            e.preventDefault();
+
+            const productId = btn.getAttribute('data-product-id');
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/Wishlist/Toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: new URLSearchParams({ productId })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.requiresLogin) {
+                    window.location.href = '/Account/Login';
+                    return;
+                }
+                if (!result.success) {
+                    alert(result.message || 'Something went wrong.');
+                    return;
+                }
+                btn.innerText = result.isInWishlist ? 'IN WISHLIST' : 'WISHLIST';
+
+                const badge = document.getElementById('wishlistCountBadge');
+                if (badge) badge.innerText = result.wishlistCount;
+            })
+            .catch(() => alert('Server communication error.'));
+        });
+    </script>
+}

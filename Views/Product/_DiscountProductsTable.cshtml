@@ -1,0 +1,121 @@
+﻿@using SanaNoor_Brand.Models
+@model List<SanaNoor_Brand.Models.Product>
+
+@if (Model != null && Model.Any())
+{
+    @foreach (var product in Model)
+    {
+        var discount = product.Discount;
+        bool hasDiscount = discount != null && discount.IsActive && discount.Value > 0;
+
+        decimal discountedPrice = product.Price;
+        if (hasDiscount)
+        {
+            if (discount.Type == DiscountType.Percentage)
+            {
+                discountedPrice = product.Price - (product.Price * discount.Value / 100);
+            }
+            else
+            {
+                discountedPrice = product.Price - discount.Value;
+            }
+        }
+
+        <tr>
+            <!-- CHECKBOX -->
+            <td>
+                <input type="checkbox" class="form-check-input product-discount-checkbox" data-id="@product.ProductId">
+            </td>
+            <!-- PRODUCT INFO -->
+            <td class="text-start">
+                <div class="d-flex align-items-center gap-2">
+                    @{
+                        var firstImage = product.ProductColors?
+                        .Where(pc => pc.Images != null && pc.Images.Any())
+                        .SelectMany(pc => pc.Images)
+                        .FirstOrDefault()?.ImagePath;
+                    }
+                    @if (!string.IsNullOrEmpty(firstImage))
+                    {
+                        <img src="@firstImage" style="width:50px; height:50px; object-fit:cover; border-radius:8px;" onerror="this.src='/images/placeholder.jpg'">
+                    }
+                    else
+                    {
+                        <div style="width:50px; height:50px; background:#f8f9fa; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-image text-muted"></i>
+                        </div>
+                    }
+                    <div>
+                        <div style="font-weight:600;">@product.Name</div>
+                        <small class="text-muted">@product.SKU</small>
+                    </div>
+                </div>
+            </td>
+            <!-- PRICE -->
+            <td class="fw-bold">₹@product.Price.ToString("N0")</td>
+            <!-- CURRENT DISCOUNT -->
+            <td>
+                @if (hasDiscount)
+                {
+                    <span class="badge bg-success">@(discount.Type == DiscountType.Percentage ? $"{discount.Value}%" : $"₹{discount.Value:N0}")</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">No Discount</span>
+                }
+            </td>
+            <!-- DISCOUNTED PRICE -->
+            <td class="fw-bold text-success">₹@discountedPrice.ToString("N0")</td>
+            <!-- NEW DISCOUNT INPUTS -->
+            <td>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm discount-type-select" data-id="@product.ProductId" style="width:120px;">
+                        <option value="">Select</option>
+                        @if (discount != null && discount.Type == DiscountType.Percentage)
+                        {
+                            <option value="Percentage" selected>Percentage (%)</option>
+                            <option value="FixedAmount">Fixed (₹)</option>
+                        }
+                        else if (discount != null && discount.Type == DiscountType.FixedAmount)
+                        {
+                            <option value="Percentage">Percentage (%)</option>
+                            <option value="FixedAmount" selected>Fixed (₹)</option>
+                        }
+                        else
+                        {
+                            <option value="Percentage">Percentage (%)</option>
+                            <option value="FixedAmount">Fixed (₹)</option>
+                        }
+                    </select>
+                    <input type="number"
+                           class="form-control form-control-sm discount-value-input"
+                           data-id="@product.ProductId"
+                           value="@(discount?.Value.ToString() ?? "")"
+                           placeholder="Value"
+                           min="0"
+                           step="0.01"
+                    @(discount != null && discount.Type == DiscountType.Percentage ? "max='100'" : "")
+                           style="width:100px;">
+                </div>
+            </td>
+            <!-- ACTIONS -->
+            <td>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-success" onclick="applyDiscountToProduct(@product.ProductId)" title="Apply Discount">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    @if (hasDiscount)
+                    {
+                        <button class="btn btn-sm btn-danger" onclick="removeDiscountFromProduct(@product.ProductId)" title="Remove Discount">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    }
+                </div>
+            </td>
+        </tr>
+    }
+}
+else
+{
+    <tr><td colspan="7" class="text-center py-5">No products found</td></tr>
+}

@@ -1,0 +1,144 @@
+﻿@using SanaNoor_Brand.Models.ViewModel
+@model LoginViewModel
+
+@{
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #ffffff, #f3e8ff, #e0b3ff);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            width: 900px;
+            max-width: 95%;
+            display: flex;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 8px 30px rgba(155, 0, 255, 0.3);
+        }
+
+        .login-left {
+            flex: 1;
+            padding: 50px;
+        }
+
+            .login-left h2 {
+                color: #5a00ff;
+                font-weight: bold;
+                margin-bottom: 25px;
+            }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .btn-login {
+            background: linear-gradient(90deg, #9b00ff, #5a00ff);
+            border: none;
+            border-radius: 25px;
+            padding: 12px;
+            color: #fff;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .login-right {
+            flex: 1;
+            background: url('@Url.Content("~/Website/assets/images/logo2.png")') no-repeat center;
+            background-size: cover;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .login-right::after {
+                content: "";
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background: rgba(90, 0, 255, 0.5);
+            }
+
+            .login-right h1 {
+                color: #fff;
+                z-index: 2;
+            }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-box">
+
+        <!-- LEFT -->
+        <div class="login-left">
+            <h2>Welcome Back 👋</h2>
+
+            <form asp-action="Login" method="post">
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <!-- Email -->
+                <input asp-for="Email" class="form-control mb-3" placeholder="Enter Email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+
+                <!-- Password -->
+                <input asp-for="Password" type="password" class="form-control mb-3" placeholder="Password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+
+                <!-- Remember -->
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <input asp-for="RememberMe" /> Remember Me
+                    </div>
+
+                    <a asp-controller="Auth" asp-action="ForgetPassword">Forgot?</a>
+                </div>
+
+                <!-- Login -->
+                <button type="submit" class="btn btn-login">Login</button>
+            </form>
+
+            <!-- OR -->
+            <div class="text-center my-3">OR</div>
+
+            <!-- Google -->
+            <form asp-controller="Auth" asp-action="GoogleLogin" method="post">
+                <button class="btn btn-outline-danger w-100">
+                    Continue with Google
+                </button>
+            </form>
+
+        </div>
+
+        <!-- RIGHT -->
+        <div class="login-right">
+            <h1>WELCOME BACK!</h1>
+        </div>
+
+    </div>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+
+</body>
+</html>

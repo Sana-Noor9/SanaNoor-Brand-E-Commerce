@@ -1,0 +1,65 @@
+﻿@model SanaNoor_Brand.ViewComponents.CartSummaryVm
+
+<div class="dropdown cart-dropdown">
+    <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-display="static">
+        <i class="icon-shopping-cart"></i>
+        <span class="cart-count">@Model.TotalQuantity</span>
+        <span class="cart-txt">@Model.GrandTotal.ToString("C")</span>
+    </a>
+
+    <div class="dropdown-menu dropdown-menu-right">
+        @if (!Model.Items.Any())
+        {
+            <div class="dropdown-cart-products">
+                <p class="text-center text-muted my-3">Your cart is empty</p>
+            </div>
+        }
+        else
+        {
+            <div class="dropdown-cart-products">
+                @foreach (var item in Model.Items)
+                {
+                    var imagePath = item.Product?.PrimaryImagePath ?? "/images/placeholder.jpg";
+
+                    <div class="product">
+                        <div class="product-cart-details">
+                            <h4 class="product-title">
+                                <a href="@Url.Action("detailproduct", "Home", new { id = item.ProductId })">@item.Product?.Name</a>
+                            </h4>
+
+                            <span class="cart-product-info">
+                                <span class="cart-product-qty">@item.Quantity</span>
+                                x @item.UnitPrice.ToString("C")
+                            </span>
+                        </div><!-- End .product-cart-details -->
+
+                        <figure class="product-image-container">
+                            <a href="@Url.Action("detailproduct", "Home", new { id = item.ProductId })" class="product-image">
+                                <img src="@Url.Content(imagePath)" alt="@item.Product?.Name">
+                            </a>
+                        </figure>
+                        <a asp-controller="Cart" asp-action="Index" class="btn-remove" title="Go to Cart"><i class="icon-close"></i></a>
+                    </div>
+
+                    <!-- End .product -->
+                }
+            </div>
+
+            <!-- End .cart-product -->
+
+            <div class="dropdown-cart-total">
+                <span>Total</span>
+                <span class="cart-total-price">@Model.GrandTotal.ToString("C")</span>
+            </div>
+
+            <!-- End .dropdown-cart-total -->
+
+            <div class="dropdown-cart-action">
+                <a asp-controller="Cart" asp-action="Index" class="btn btn-primary">View Cart</a>
+                <a asp-controller="Cart" asp-action="CheckOut" class="btn btn-outline-primary-2"><span>Checkout</span><i class="icon-long-arrow-right"></i></a>
+            </div>
+
+            <!-- End .dropdown-cart-total -->
+        }
+    </div><!-- End .dropdown-menu -->
+</div><!-- End .cart-dropdown -->

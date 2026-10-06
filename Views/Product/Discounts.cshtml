@@ -1,0 +1,254 @@
+﻿@{
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+@model List<SanaNoor_Brand.Models.Product>
+
+@* ANTI‑FORGERY TOKEN – ye hidden input banayega *@
+@Html.AntiForgeryToken()
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-11">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4><i class="fas fa-tag me-2"></i>Product Discounts</h4>
+            </div>
+
+            <!-- Bulk Discount Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center justify-content-center">
+                        <div class="col-md-3">
+                            <select id="bulkDiscountType" class="form-select">
+                                <option value="">Select Type</option>
+                                <option value="Percentage">Percentage (%)</option>
+                                <option value="FixedAmount">Fixed Amount (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" id="bulkDiscountValue" class="form-control" placeholder="Discount Value" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-success w-100" onclick="applyBulkDiscount()">
+                                <i class="fas fa-tags me-2"></i>Apply to Selected
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-danger w-100" onclick="removeBulkDiscount()">
+                                <i class="fas fa-times me-2"></i>Remove from Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-center">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="50"><input type="checkbox" id="selectAllDiscounts" class="form-check-input"></th>
+                                    <th class="text-start">Product</th>
+                                    <th>Price</th>
+                                    <th>Current Discount</th>
+                                    <th>Discounted Price</th>
+                                    <th>New Discount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="discountTableBody">
+                                <partial name="_DiscountProductsTable" model="Model" />
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ========== SELECT ALL CHECKBOXES ==========
+        $('#selectAllDiscounts').on('change', function () {
+            $('.product-discount-checkbox').prop('checked', $(this).prop('checked'));
+        });
+
+        // ========== APPLY SINGLE DISCOUNT ==========
+        window.applyDiscountToProduct = function (productId) {
+            const row = $(`.product-discount-checkbox[data-id="${productId}"]`).closest('tr');
+            const type = row.find('.discount-type-select').val();
+            const value = row.find('.discount-value-input').val();
+
+            if (!type || !value) {
+                Swal.fire('Error!', 'Please select type and enter value', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Apply Discount?',
+                html: `<p>Type: <b>${type}</b><br>Value: <b>${value}${type === 'Percentage' ? '%' : '₹'}</b></p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Apply'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("ApplyDiscount", "Product")',
+                        type: 'POST',
+                        data: {
+                            productId: productId,
+                            discountType: type,
+                            discountValue: parseFloat(value),
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (res) {
+                            if (res.success) {
+                                Swal.fire('Success!', res.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', res.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        };
+
+        // ========== REMOVE SINGLE DISCOUNT ==========
+        window.removeDiscountFromProduct = function (productId) {
+            Swal.fire({
+                title: 'Remove Discount?',
+                text: 'Are you sure?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Remove'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("RemoveDiscount", "Product")',
+                        type: 'POST',
+                        data: {
+                            productId: productId,
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (res) {
+                            if (res.success) {
+                                Swal.fire('Success!', res.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', res.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        };
+
+        // ========== APPLY BULK DISCOUNT ==========
+        window.applyBulkDiscount = function () {
+            const selectedIds = [];
+            $('.product-discount-checkbox:checked').each(function () {
+                selectedIds.push($(this).data('id'));
+            });
+
+            if (selectedIds.length === 0) {
+                Swal.fire('Error!', 'Please select at least one product', 'warning');
+                return;
+            }
+
+            const type = $('#bulkDiscountType').val();
+            const value = $('#bulkDiscountValue').val();
+
+            if (!type || !value) {
+                Swal.fire('Error!', 'Please select discount type and enter value', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Apply Bulk Discount?',
+                html: `<p>Products: <b>${selectedIds.length}</b><br>
+                       Type: <b>${type}</b><br>
+                       Value: <b>${value}${type === 'Percentage' ? '%' : '₹'}</b></p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Apply'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("ApplyBulkDiscount", "Product")',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            productIds: selectedIds,
+                            discountType: type,
+                            discountValue: parseFloat(value)
+                        }),
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (res) {
+                            if (res.success) {
+                                Swal.fire('Success!', res.message, 'success').then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', res.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        };
+
+        // ========== REMOVE BULK DISCOUNT ==========
+        window.removeBulkDiscount = function () {
+            const selectedIds = [];
+            $('.product-discount-checkbox:checked').each(function () {
+                selectedIds.push($(this).data('id'));
+            });
+
+            if (selectedIds.length === 0) {
+                Swal.fire('Error!', 'Please select at least one product', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Remove Bulk Discount?',
+                html: `<p>Remove discount from <b>${selectedIds.length}</b> products?</p>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Remove'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let completed = 0;
+                    selectedIds.forEach(id => {
+                        $.ajax({
+                            url: '@Url.Action("RemoveDiscount", "Product")',
+                            type: 'POST',
+                            data: {
+                                productId: id,
+                                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                            },
+                            success: function () {
+                                completed++;
+                                if (completed === selectedIds.length) {
+                                    Swal.fire('Success!', 'Discounts removed successfully', 'success').then(() => {
+                                        location.reload();
+                                    });
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+        };
+    </script>
+}

@@ -1,0 +1,122 @@
+﻿@model List<SanaNoor_Brand.Models.Review>
+@{
+    ViewData["Title"] = "Pending Reviews";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .review-mod-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .review-stars {
+        color: #f5a623;
+        font-size: 14px;
+    }
+
+    .review-comment {
+        margin: 10px 0;
+        color: #444;
+    }
+
+    .review-meta {
+        font-size: 12px;
+        color: #999;
+    }
+</style>
+
+@Html.AntiForgeryToken()
+
+<div class="container py-5">
+    <h2 class="mb-4">Pending Reviews (@Model.Count)</h2>
+
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No reviews awaiting approval.</p>
+    }
+    else
+    {
+        <div id="pendingReviewsList">
+            @foreach (var review in Model)
+            {
+                <div class="review-mod-card" id="review-@review.ReviewId">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>@review.Product?.Name</strong>
+                            <div class="review-stars">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="@(i <= review.Rating ? "fas" : "far") fa-star"></i>
+                                }
+                            </div>
+                        </div>
+                        <span class="review-meta">@review.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</span>
+                    </div>
+
+                    <p class="review-comment">@review.Comment</p>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success btn-sm" onclick="approveReview(@review.ReviewId)">
+                            <i class="fas fa-check me-1"></i> Approve
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="rejectReview(@review.ReviewId)">
+                            <i class="fas fa-times me-1"></i> Reject
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function getToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+        function approveReview(reviewId) {
+            fetch('/Review/Approve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getToken()
+                },
+                body: new URLSearchParams({ reviewId })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    document.getElementById('review-' + reviewId).remove();
+                } else {
+                    alert(result.message || 'Something went wrong.');
+                }
+            });
+        }
+
+        function rejectReview(reviewId) {
+            if (!confirm('Reject and delete this review?')) return;
+
+            fetch('/Review/Reject', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getToken()
+                },
+                body: new URLSearchParams({ reviewId })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    document.getElementById('review-' + reviewId).remove();
+                } else {
+                    alert(result.message || 'Something went wrong.');
+                }
+            });
+        }
+    </script>
+}

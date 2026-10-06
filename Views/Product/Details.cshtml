@@ -1,0 +1,116 @@
+﻿
+@{
+    ViewData["Title"] = "Details";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+@model Product
+
+<div class="container my-5">
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-md-6">
+            @if (Model.ProductColors?.Any() == true)
+            {
+                var defaultColor = Model.ProductColors.FirstOrDefault(c => c.IsDefault)
+                ?? Model.ProductColors.First();
+
+                if (defaultColor.Images?.Any() == true)
+                {
+                    var primaryImage = defaultColor.Images.FirstOrDefault(i => i.IsPrimary);
+                    <img src="@primaryImage?.ImagePath" class="img-fluid rounded"
+                         alt="@Model.Name" style="max-height: 500px;">
+
+                    <!-- Thumbnails -->
+                    <div class="d-flex mt-3">
+                        @foreach (var img in defaultColor.Images.Take(4))
+                        {
+                            <img src="@img.ImagePath" class="img-thumbnail me-2"
+                                 style="width: 80px; height: 80px; object-fit: cover;">
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Product Info -->
+        <div class="col-md-6">
+            <h2>@Model.Name</h2>
+
+            <!-- Price -->
+            <div class="price-section mb-3">
+                <h3 class="text-danger">Rs. @Model.Price.ToString("N0")</h3>
+                @if (Model.ComparePrice.HasValue && Model.ComparePrice > Model.Price)
+                {
+                    <del class="text-muted">Rs. @Model.ComparePrice.Value.ToString("N0")</del>
+                    <span class="badge bg-success ms-2">
+                        Save @((Model.ComparePrice.Value - Model.Price).ToString("N0"))
+                    </span>
+                }
+            </div>
+
+            <!-- Details -->
+            <table class="table table-bordered">
+                <tr><th>SKU</th><td>@Model.SKU</td></tr>
+                <tr><th>Category</th><td>@Model.Category?.CategoryName</td></tr>
+                <tr><th>Fabric</th><td>@Model.Fabric</td></tr>
+                <tr><th>Type</th><td>@Model.ProductType</td></tr>
+                <tr><th>Pieces</th><td>@Model.Pieces</td></tr>
+                <tr>
+                    <th>Stock</th>
+                    <td>
+                        @if (Model.StockQuantity > 0)
+                        {
+                            <span class="text-success">In Stock (@Model.StockQuantity)</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">Out of Stock</span>
+                        }
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Colors -->
+            @if (Model.ProductColors?.Any() == true)
+            {
+                <div class="mb-4">
+                    <h5>Available Colors:</h5>
+                    <div class="d-flex flex-wrap">
+                        @foreach (var color in Model.ProductColors)
+                        {
+                            <div class="color-circle me-2 mb-2"
+                                 title="@color.ColorName"
+                                 style="width: 40px; height: 40px;
+                                        background-color: @color.ColorCode;
+                                        border-radius: 50%;
+                                        border: 2px solid #ccc;">
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Add to Cart -->
+            <div class="mb-4">
+                <button class="btn btn-danger btn-lg w-100">
+                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Product Description</h5>
+                </div>
+                <div class="card-body">
+                    <p>@Model.FullDescription</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

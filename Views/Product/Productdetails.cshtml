@@ -1,0 +1,845 @@
+﻿@using System.Security.Claims
+@model SanaNoor_Brand.Models.Product
+@{
+    ViewData["Title"] = Model.Name;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var allImages = Model.ProductColors?
+        .SelectMany(pc => pc.Images ?? Enumerable.Empty<ProductImage>())
+        .OrderBy(i => i.DisplayOrder)
+        .ToList() ?? new List<ProductImage>();
+
+    string GetImageUrl(string imagePath)
+    {
+        if (string.IsNullOrEmpty(imagePath))
+            return Url.Content("~/uploads/products/default.jpg");
+        if (imagePath.StartsWith("/"))
+            return imagePath;
+        return Url.Content("~/uploads/products/" + imagePath);
+    }
+    var defaultColor = Model.ProductColors?.FirstOrDefault();
+    var defaultColorId = defaultColor?.ProductColorId ?? 0;
+    var defaultColorName = defaultColor?.ColorName ?? "Select Color";
+
+    // ✅ DEBUG - Check karo
+    @if (defaultColorId == 0)
+    {
+        <div class="alert alert-danger">
+            <strong>ERROR:</strong> No colors found for product ID: @Model.ProductId
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <strong>DEBUG:</strong> Default Color ID: @defaultColorId, Name: @defaultColorName
+        </div>
+    }
+    var sizeList = defaultColor?.Sizes?
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(s => s.Trim())
+        .ToList() ?? new List<string> { "Free" };
+
+    var defaultSize = sizeList.FirstOrDefault() ?? "Free";
+    var productId = Model.ProductId;
+    var hasDiscount = Model.HasDiscount;
+    var originalPrice = Model.Price;
+    var media = Model.ProductColors;
+    var discountedPrice = hasDiscount ? Model.GetDiscountedPrice() : originalPrice;
+    var discountDisplay = hasDiscount && Model.Discount != null ? Model.Discount.GetDisplayValue() : "";
+}
+
+<style>
+    .breadcrumb-nav {
+        background: #f8f8f8;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+    .product-title {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .product-price {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 18px;
+        font-weight: normal;
+        margin-right: 10px;
+    }
+
+    .discounted-price {
+        color: #e53935;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .discount-badge {
+        display: inline-block;
+        background: #e53935;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+
+    .product-meta {
+        margin-bottom: 20px;
+    }
+
+        .product-meta p {
+            margin-bottom: 8px;
+        }
+
+        .product-meta strong {
+            font-weight: 600;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 20px 0 10px;
+        text-transform: uppercase;
+    }
+
+    /* ========== COLOR CIRCLE - SIRF COLOR ========== */
+    .color-options {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .color-circle {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: 3px solid #ddd;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+        .color-circle:hover {
+            transform: scale(1.1);
+            border-color: #999;
+        }
+
+        .color-circle.active {
+            border: 3px solid #333;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 5px #333;
+            transform: scale(1.05);
+        }
+
+    .color-text {
+        display: none;
+    }
+
+    .size-options {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+    }
+
+    .size-box {
+        padding: 8px 18px;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+        border-radius: 4px;
+        min-width: 45px;
+        text-align: center;
+    }
+
+        .size-box:hover {
+            border-color: #999;
+            background: #f9f9f9;
+        }
+
+        .size-box.active {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+    .cart-row {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .qty-box {
+        display: flex;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+        .qty-box button {
+            width: 40px;
+            border: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+            .qty-box button:hover {
+                background: #e5e5e5;
+            }
+
+        .qty-box input {
+            width: 55px;
+            text-align: center;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+    .btn-custom {
+        padding: 12px 30px;
+        font-weight: 600;
+        text-transform: uppercase;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-block;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .btn-cart {
+        background-color: #333;
+        color: white;
+        border-radius: 25px;
+        font-size: 14px;
+        width: 100%;
+    }
+
+        .btn-cart:hover {
+            background-color: #555;
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-cart:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+    .badge-discount {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: #e53935;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 25px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 10;
+    }
+
+    .product-main-image {
+        position: relative;
+    }
+
+        .product-main-image img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+    .product-image-gallery {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+        .product-image-gallery img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            .product-image-gallery img:hover,
+            .product-image-gallery img.active-thumb {
+                border-color: #333;
+            }
+
+    .contact-info {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+
+    hr {
+        margin: 15px 0;
+    }
+
+    .stock-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .out-of-stock {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* ✅ FIXED RESPONSIVE */
+    @media (max-width: 768px) {
+        .color-circle
+
+    {
+        width: 35px;
+        height: 35px;
+    }
+
+    .product-title {
+        font-size: 18px;
+    }
+
+    .product-price {
+        font-size: 16px;
+    }
+
+    .section-title {
+        font-size: 14px;
+    }
+
+    }
+</style>
+
+<main class="main">
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="@Url.Action("Index", "Product")">Products</a></li>
+                <li class="breadcrumb-item active">@Model.Name</li>
+            </ol>
+        </div>
+    </nav>
+
+    <div class="page-content">
+        <div class="container">
+            <div class="product-details-top">
+                <div class="row">
+                    <!-- LEFT: Images -->
+                    <div class="col-md-6">
+                        <div class="product-gallery position-relative">
+                            @if (hasDiscount)
+                            {
+                                <div class="badge-discount">@discountDisplay OFF</div>
+                            }
+                            <figure class="product-main-image">
+                                <img id="mainImage" src="@GetImageUrl(allImages.FirstOrDefault()?.ImagePath)" alt="@Model.Name" class="img-fluid" />
+                            </figure>
+                            @if (allImages.Any())
+                            {
+                                <div class="product-image-gallery">
+                                    @foreach (var img in allImages.Take(5))
+                                    {
+                                        var thumbUrl = GetImageUrl(img.ImagePath);
+                                        <img src="@thumbUrl" alt="thumbnail" onclick="changeImage(this, '@thumbUrl')" class="@(allImages.FirstOrDefault()?.ImagePath == img.ImagePath ? "active-thumb" : "")" />
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Details + Form -->
+                    <div class="col-md-6">
+                        <div class="product-details">
+                            <h1 class="product-title">@Model.Name</h1>
+
+                            <div class="product-price" id="productPriceDisplay">
+                                @if (hasDiscount)
+                                {
+                                    <span class="original-price">Rs. @originalPrice.ToString("N0")</span>
+                                    <span class="discounted-price">Rs. @discountedPrice.ToString("N0")</span>
+                                    <span class="discount-badge">@discountDisplay OFF</span>
+                                }
+                                else
+                                {
+                                    <span>Rs. @originalPrice.ToString("N0")</span>
+                                }
+                            </div>
+
+                            <div class="product-meta">
+                                <p><strong>SKU:</strong> @(Model.SKU ?? "—")</p>
+                                <p>
+                                    <strong>Availability:</strong>
+                                    @if (Model.StockQuantity > 0)
+                                    {
+                                        <span class="stock-badge in-stock">In Stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stock-badge out-of-stock">Out of Stock</span>
+                                    }
+                                </p>
+                            </div>
+
+                            <hr />
+
+                            <!-- DESCRIPTION -->
+                            <h5 class="section-title">DESCRIPTION</h5>
+                            @if (!string.IsNullOrEmpty(Model.DesignCode))
+                            {
+                                <p><strong>Design:</strong> @Model.DesignCode</p>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Fabric))
+                            {
+                                <p><strong>Fabric:</strong> @Model.Fabric</p>
+                            }
+                            <p>@(Model.FullDescription ?? Model.ShortDescription ?? "No description available.")</p>
+                            @if (!string.IsNullOrEmpty(Model.Disclaimer))
+                            {
+                                <p class="text-muted small"><em>@Model.Disclaimer</em></p>
+                            }
+
+                            <hr />
+
+                            <!-- ========== ADD TO CART ========== -->
+                            @Html.AntiForgeryToken()
+                            <div class="color-circle active"
+                                 style="background-color: #800080;"
+                                 data-color-id="1"   <!-- ✅ YEH 1 HAI, LEKIN DATABASE MEIN 1 EXIST NAHI KARTA -->
+     data-color-name="Purple"
+     data-stock="10"
+     onclick="selectColor(this)">
+</div>
+                            <!-- COLOR SELECTION -->
+                            <div class="mb-3">
+                                <h5 class="section-title">SELECT COLOR</h5>
+                                <div class="color-options">
+                                    @if (Model.ProductColors != null && Model.ProductColors.Any())
+                                    {
+                                        @foreach (var color in Model.ProductColors)
+                                        {
+                                            var isActive = color == Model.ProductColors.First() ? "active" : "";
+                                            <div class="color-circle @isActive"
+                                                 style="background-color: @color.ColorCode;"
+                                                 data-color-id="@color.ProductColorId"
+                                                 data-color-name="@color.ColorName"
+                                                 data-stock="@color.Stock"
+                                                 data-sizes="@color.Sizes"
+                                                 data-extra-price="@(color.ExtraPrice ?? 0)"
+                                                 onclick="selectColor(this)">
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No colors available</p>
+                                    }
+                                </div>
+                                <div class="mt-2">
+                                    <span>Selected: </span>
+                                    <span id="selectedColorName" style="font-weight:600;">@(Model.ProductColors?.FirstOrDefault()?.ColorName ?? "None")</span>
+                                    <span id="stockInfo" class="stock-badge in-stock" style="margin-left:10px;">
+                                        @(Model.ProductColors?.FirstOrDefault()?.Stock > 0 ? $"{Model.ProductColors.First().Stock} in stock" : "Out of stock")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- SIZE SELECTION -->
+                            <div class="mb-3">
+                                <h5 class="section-title">SELECT SIZE</h5>
+                                <div class="size-options" id="sizeOptions">
+                                    @foreach (var size in sizeList)
+                                    {
+                                        var isActive = size == defaultSize ? "active" : "";
+                                        <div class="size-box @isActive" data-size="@size" onclick="selectSize(this)">@size</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- QUANTITY -->
+                            <div class="mb-3">
+                                <h5 class="section-title">QUANTITY</h5>
+                                <div class="qty-box">
+                                    <button type="button" onclick="changeQty(-1)">-</button>
+                                    <input type="number" id="quantity" value="1" min="1" max="10" readonly />
+                                    <button type="button" onclick="changeQty(1)">+</button>
+                                </div>
+                            </div>
+
+                            <!-- ADD TO CART BUTTON -->
+                            <button id="addToCartBtn" class="btn-custom btn-cart" style="width:100%;">
+                                <i class="fas fa-shopping-cart me-2"></i>ADD TO CART
+                            </button>
+
+                            @if (TempData["success"] != null)
+                            {
+                                <div class="alert alert-success mt-3">@TempData["success"]</div>
+                            }
+                            @if (TempData["error"] != null)
+                            {
+                                <div class="alert alert-danger mt-3">@TempData["error"]</div>
+                            }
+
+                            <div class="contact-info">
+                                <h5>CONTACT US</h5>
+                                <p>Email: info@sananoor.com</p>
+                                <p>Phone: +92 300 0000000</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script>
+        // =============================================
+        // INITIALIZATION
+        // =============================================
+        let selectedColorId = @defaultColorId;
+        let selectedSize = '@defaultSize';
+        let maxStock = @(defaultColor?.Stock ?? 0);
+        let selectedColorName = '@defaultColorName';
+        let selectedColorExtraPrice = @(defaultColor?.ExtraPrice ?? 0);
+
+        console.log('=== INITIAL VALUES ===');
+        console.log('selectedColorId:', selectedColorId);
+        console.log('selectedSize:', selectedSize);
+        console.log('maxStock:', maxStock);
+
+        // =============================================
+        // CHANGE IMAGE
+        // =============================================
+        function changeImage(thumb, imgUrl) {
+            document.getElementById('mainImage').src = imgUrl;
+            document.querySelectorAll('.product-image-gallery img').forEach(t => t.classList.remove('active-thumb'));
+            thumb.classList.add('active-thumb');
+        }
+
+        // =============================================
+        // SELECT COLOR
+        // =============================================
+        function selectColor(element) {
+            document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            selectedColorId = parseInt(element.dataset.colorId);
+            console.log('✅ Selected Color ID:', selectedColorId);
+
+            if (selectedColorId === 0 || isNaN(selectedColorId)) {
+                console.error('❌ Invalid Color ID!');
+                showToast('Please select a valid color', 'error');
+                return;
+            }
+
+            selectedColorName = element.dataset.colorName;
+            maxStock = parseInt(element.dataset.stock);
+            selectedColorExtraPrice = parseFloat(element.dataset.extraPrice) || 0;
+            const sizes = element.dataset.sizes;
+            const image = element.dataset.image;
+
+            document.getElementById('selectedColorName').innerText = selectedColorName;
+
+            const stockInfo = document.getElementById('stockInfo');
+            if (maxStock > 0) {
+                stockInfo.innerText = maxStock + ' in stock';
+                stockInfo.className = 'stock-badge in-stock';
+            } else {
+                stockInfo.innerText = 'Out of stock';
+                stockInfo.className = 'stock-badge out-of-stock';
+            }
+
+            if (image) {
+                let imgUrl = image.startsWith('/') ? image : '/uploads/products/' + image;
+                document.getElementById('mainImage').src = imgUrl;
+            }
+
+            populateSizes(sizes);
+            document.getElementById('quantity').value = 1;
+            updatePrice();
+            updateButtonState();
+        }
+
+        // =============================================
+        // POPULATE SIZES
+        // =============================================
+        function populateSizes(sizesStr) {
+            const container = document.getElementById('sizeOptions');
+            container.innerHTML = '';
+
+            if (!sizesStr || sizesStr.trim() === '' || sizesStr.trim() === 'Free') {
+                container.innerHTML = '<div class="size-box active" data-size="Free" onclick="selectSize(this)">Free</div>';
+                selectedSize = 'Free';
+                return;
+            }
+
+            const sizes = sizesStr.split(',').map(s => s.trim()).filter(s => s);
+            sizes.forEach((size, index) => {
+                const div = document.createElement('div');
+                div.className = 'size-box' + (index === 0 ? ' active' : '');
+                div.dataset.size = size;
+                div.innerText = size;
+                div.onclick = function() { selectSize(this); };
+                container.appendChild(div);
+                if (index === 0) selectedSize = size;
+            });
+        }
+
+        // =============================================
+        // SELECT SIZE
+        // =============================================
+        function selectSize(element) {
+            document.querySelectorAll('.size-box').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            selectedSize = element.dataset.size;
+        }
+
+        // =============================================
+        // CHANGE QUANTITY
+        // =============================================
+        function changeQty(delta) {
+            const input = document.getElementById('quantity');
+            let qty = parseInt(input.value) + delta;
+            if (qty < 1) qty = 1;
+            if (qty > maxStock && maxStock > 0) qty = maxStock;
+            if (qty > 10) qty = 10;
+            input.value = qty;
+        }
+
+        // =============================================
+        // UPDATE PRICE
+        // =============================================
+        function updatePrice() {
+            const priceElement = document.getElementById('productPriceDisplay');
+            if (!priceElement) return;
+
+            let finalPrice = @discountedPrice + selectedColorExtraPrice;
+            let basePrice = @originalPrice + selectedColorExtraPrice;
+
+        @if (hasDiscount)
+        {
+            <text>
+                            priceElement.innerHTML = `
+                                <span class="original-price">Rs. ${basePrice.toLocaleString()}</span>
+                                <span class="discounted-price">Rs. ${finalPrice.toLocaleString()}</span>
+                                <span class="discount-badge">@discountDisplay OFF</span>
+                                ${selectedColorExtraPrice > 0 ? `<small class="text-muted d-block">(+Rs. ${selectedColorExtraPrice.toLocaleString()} for this color)</small>` : ''}
+                            `;
+            </text>
+        }
+        else
+        {
+            <text>
+                            priceElement.innerHTML = `
+                                <span>Rs. ${finalPrice.toLocaleString()}</span>
+                                ${selectedColorExtraPrice > 0 ? `<small class="text-muted d-block">(+Rs. ${selectedColorExtraPrice.toLocaleString()} for this color)</small>` : ''}
+                            `;
+            </text>
+        }
+        }
+
+        // =============================================
+        // UPDATE BUTTON STATE
+        // =============================================
+        function updateButtonState() {
+            const btn = document.getElementById('addToCartBtn');
+            if (maxStock <= 0) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-ban me-2"></i>OUT OF STOCK';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>ADD TO CART';
+            }
+        }
+
+        // =============================================
+        // ADD TO CART - FINAL FIXED
+        // =============================================
+        function addToCart() {
+            // ✅ FINAL CHECK - Force set if 0
+            if (!selectedColorId || selectedColorId === 0) {
+                const firstColor = document.querySelector('.color-circle');
+                if (firstColor) {
+                    selectedColorId = parseInt(firstColor.dataset.colorId);
+                    console.log('✅ FORCE SET in addToCart:', selectedColorId);
+                }
+            }
+
+            console.log('=== ADD TO CART ===');
+            console.log('selectedColorId:', selectedColorId);
+            console.log('selectedSize:', selectedSize);
+
+            // ✅ FINAL VALIDATION
+            if (!selectedColorId || selectedColorId === 0) {
+                showToast('No color available for this product', 'error');
+                console.error('❌ No color selected!');
+                return;
+            }
+
+            if (!selectedSize) {
+                showToast('Please select a size', 'warning');
+                return;
+            }
+
+            if (maxStock <= 0) {
+                showToast('This color is out of stock', 'error');
+                return;
+            }
+
+            const qty = parseInt(document.getElementById('quantity').value) || 1;
+            const btn = document.getElementById('addToCartBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>ADDING...';
+
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            const token = tokenInput ? tokenInput.value : '';
+
+            const data = {
+                productId: @Model.ProductId,
+                productColorId: selectedColorId,
+                size: selectedSize,
+                quantity: qty,
+                __RequestVerificationToken: token
+            };
+
+            console.log('✅ Sending data:', data);
+
+            $.ajax({
+                url: '/Cart/AddToCart',
+                type: 'POST',
+                data: data,
+                success: function(response) {
+                    console.log('✅ Response:', response);
+                    if (response.success) {
+                        const badge = document.querySelector('.cart-count');
+                        if (badge) {
+                            badge.innerText = response.cartCount || 0;
+                            badge.style.display = 'block';
+                        }
+
+                        btn.innerHTML = '<i class="fas fa-check me-2"></i>ADDED!';
+                        btn.style.backgroundColor = '#28a745';
+
+                        showToast('Added to cart successfully!', 'success');
+
+                        setTimeout(() => {
+                            btn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>ADD TO CART';
+                            btn.style.backgroundColor = '#333';
+                            btn.disabled = false;
+                        }, 2000);
+                    } else {
+                        if (response.needLogin) {
+                            window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
+                            return;
+                        }
+                        showToast(response.message || 'Error adding to cart', 'error');
+                        btn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>ADD TO CART';
+                        btn.disabled = false;
+                    }
+                },
+                error: function(xhr) {
+                    console.log('❌ Error:', xhr);
+                    let msg = 'Error adding to cart. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    showToast(msg, 'error');
+                    btn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>ADD TO CART';
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        // =============================================
+        // TOAST / ALERT
+        // =============================================
+        function showToast(message, type) {
+            if (type === 'success') {
+                Swal.fire({ icon: 'success', title: 'Success!', text: message, timer: 3000, showConfirmButton: false });
+            } else if (type === 'error') {
+                Swal.fire({ icon: 'error', title: 'Error!', text: message, confirmButtonColor: '#333' });
+            } else {
+                Swal.fire({ icon: 'info', title: 'Info', text: message, confirmButtonColor: '#333' });
+            }
+        }
+
+        // =============================================
+        // EVENT LISTENERS
+        // =============================================
+        document.addEventListener("DOMContentLoaded", function() {
+            // ✅ FORCE SET - Pehla color select karo
+            const firstColor = document.querySelector('.color-circle');
+            if (firstColor) {
+                const colorId = parseInt(firstColor.dataset.colorId);
+                if (colorId && colorId > 0) {
+                    selectedColorId = colorId;
+                    console.log('✅ DOMContentLoaded - Force set selectedColorId:', selectedColorId);
+                } else {
+                    console.error('❌ First color has invalid ID:', firstColor.dataset.colorId);
+                }
+            }
+
+            const colorCircles = document.querySelectorAll('.color-circle');
+            console.log('Total color circles found:', colorCircles.length);
+
+            if (colorCircles.length === 0) {
+                console.error('❌ No color circles found on the page!');
+            }
+
+            const cartBtn = document.getElementById('addToCartBtn');
+            if (cartBtn) {
+                cartBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    addToCart();
+                });
+            }
+
+            document.getElementById('quantity').addEventListener('change', function() {
+                let val = parseInt(this.value);
+                if (isNaN(val) || val < 1) val = 1;
+                if (val > maxStock && maxStock > 0) val = maxStock;
+                if (val > 10) val = 10;
+                this.value = val;
+            });
+        });
+    </script>
+}

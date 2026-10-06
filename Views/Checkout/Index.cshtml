@@ -1,0 +1,418 @@
+﻿@model List<SanaNoor_Brand.Models.Cart>
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var subTotal = Model.Sum(c => c.UnitPrice * c.Quantity);
+    var shipping = subTotal >= 3000 ? 0 : 200;
+    var grandTotal = subTotal + shipping;
+}
+
+<style>
+    .checkout-page .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0,0,0,.06);
+    }
+
+    .checkout-page label {
+        font-weight: 500;
+        margin-bottom: 6px;
+        display: block;
+        color: #333;
+    }
+
+    .checkout-page .form-control {
+        border-radius: 8px;
+        padding: 10px 14px;
+        border: 1px solid #e0e0e0;
+    }
+
+        .checkout-page .form-control:focus {
+            border-color: #c79a63;
+            box-shadow: 0 0 0 .15rem rgba(199,154,99,.25);
+        }
+
+    .checkout-page .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #c79a63;
+        display: inline-block;
+    }
+
+    .summary-card-header {
+        background: #c79a63;
+        color: #fff;
+        border-radius: 15px 15px 0 0;
+        padding: 18px 24px;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+    }
+
+        .summary-item .item-name {
+            color: #444;
+        }
+
+        .summary-item .item-qty {
+            color: #c79a63;
+            font-weight: 600;
+        }
+
+        .summary-item .item-price {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        color: #555;
+    }
+
+    .summary-total-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 20px;
+        font-weight: 700;
+        color: #222;
+        padding-top: 14px;
+        margin-top: 8px;
+        border-top: 2px dashed #eee;
+    }
+
+        .summary-total-row .amount {
+            color: #c79a63;
+        }
+
+    .safepay-note {
+        background: #fff8ef;
+        border: 1px solid #f1e0c5;
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 13px;
+        color: #7a5c2e;
+        margin: 16px 0;
+    }
+
+    #payBtn {
+        background: #c79a63;
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+        #payBtn:disabled {
+            opacity: 0.6;
+        }
+
+    .checkout-loading {
+        font-size: 13px;
+        color: #999;
+        text-align: center;
+        padding: 8px 0;
+    }
+
+    /* Payment method selector */
+    .payment-method-option {
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+        .payment-method-option:hover {
+            border-color: #c79a63;
+        }
+
+        .payment-method-option.selected {
+            border-color: #c79a63;
+            background: #fff8ef;
+        }
+
+        .payment-method-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #c79a63;
+            margin: 0;
+        }
+
+    .payment-method-icon {
+        font-size: 20px;
+        width: 28px;
+        text-align: center;
+        color: #c79a63;
+    }
+
+    .payment-method-text {
+        flex: 1;
+    }
+
+        .payment-method-text .pm-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .payment-method-text .pm-subtitle {
+            font-size: 12px;
+            color: #888;
+        }
+</style>
+
+@Html.AntiForgeryToken()
+
+<div class="page-header text-center" style="background:#f7f3ee; padding: 40px 0;">
+    <div class="container">
+        <h1 class="page-title mb-0">Checkout</h1>
+    </div>
+</div>
+
+<nav aria-label="breadcrumb" class="breadcrumb-nav border-bottom">
+    <div class="container">
+        <ol class="breadcrumb py-2 mb-0">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Cart" class="text-decoration-none">Cart</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+        </ol>
+    </div>
+</nav>
+
+<div class="checkout-page py-5">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Billing Form -->
+            <div class="col-lg-7">
+                <div class="card p-4 p-md-5 mb-4">
+                    <span class="section-title">Billing Details</span>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label>Full Name *</label>
+                            <input type="text" id="customerName" class="form-control" placeholder="Enter your full name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Email *</label>
+                            <input type="email"
+                                   id="customerEmail"
+                                   class="form-control"
+                                   value="@ViewBag.UserEmail"
+                                   placeholder="you@example.com"
+                                   readonly
+                                   required>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Phone *</label>
+                            <input type="text" id="customerPhone" class="form-control" placeholder="03xx-xxxxxxx" required>
+                        </div>
+                        <div class="col-12">
+                            <label>Shipping Address *</label>
+                            <input type="text" id="shippingAddress" class="form-control" placeholder="House #, Street, Area" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label>City *</label>
+                            <input type="text" id="city" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Postal Code *</label>
+                            <input type="text" id="postalCode" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="card p-4 p-md-5">
+                    <span class="section-title">Payment Method</span>
+
+                    <div class="payment-method-option selected" data-method="card">
+                        <input type="radio" name="paymentMethod" value="card" checked>
+                        <span class="payment-method-icon"><i class="fas fa-credit-card"></i></span>
+                        <span class="payment-method-text">
+                            <div class="pm-title">Credit / Debit Card</div>
+                            <div class="pm-subtitle">Pay securely via Safepay</div>
+                        </span>
+                    </div>
+
+                    <div class="payment-method-option" data-method="wallet">
+                        <input type="radio" name="paymentMethod" value="wallet">
+                        <span class="payment-method-icon"><i class="fas fa-mobile-alt"></i></span>
+                        <span class="payment-method-text">
+                            <div class="pm-title">Easypaisa / JazzCash</div>
+                            <div class="pm-subtitle">Pay via mobile wallet through Safepay</div>
+                        </span>
+                    </div>
+
+                    <div class="payment-method-option" data-method="cod">
+                        <input type="radio" name="paymentMethod" value="cod">
+                        <span class="payment-method-icon"><i class="fas fa-money-bill-wave"></i></span>
+                        <span class="payment-method-text">
+                            <div class="pm-title">Cash on Delivery</div>
+                            <div class="pm-subtitle">Pay when your order arrives</div>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="col-lg-5">
+                <div class="card sticky-top" style="top:100px;">
+                    <div class="summary-card-header">
+                        <i class="fas fa-receipt me-2"></i>Order Summary
+                    </div>
+                    <div class="p-4">
+                        @foreach (var item in Model)
+                        {
+                            <div class="summary-item">
+                                <span class="item-name">
+                                    @item.Product?.Name
+                                    <span class="item-qty">(x@(item.Quantity))</span>
+                                </span>
+                                <span class="item-price">₹@((item.UnitPrice * item.Quantity).ToString("F0"))</span>
+                            </div>
+                        }
+
+                        <div class="summary-row mt-2">
+                            <span>Subtotal</span>
+                            <span>₹@subTotal.ToString("F0")</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            @if (shipping == 0)
+                            {
+                                <span class="text-success fw-bold">FREE</span>
+                            }
+                            else
+                            {
+                                <span>₹@shipping</span>
+                            }
+                        </div>
+
+                        <div class="summary-total-row">
+                            <span>Total</span>
+                            <span class="amount">₹@grandTotal.ToString("F0")</span>
+                        </div>
+
+                        <div class="safepay-note" id="paymentNote">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Pay securely with Safepay — Debit/Credit card aur mobile wallets sab accept hote hain.
+                        </div>
+
+                        <button id="payBtn" class="w-100">Pay Now — ₹@grandTotal.ToString("F0")</button>
+                        <div id="checkout-loading" class="checkout-loading" style="display:none;">Processing...</div>
+                        <div id="checkout-error" class="text-danger small mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const paymentOptions = document.querySelectorAll(".payment-method-option");
+        const payBtn = document.getElementById("payBtn");
+        const paymentNote = document.getElementById("paymentNote");
+
+        function updateSelection() {
+            paymentOptions.forEach(opt => {
+                const radio = opt.querySelector('input[type="radio"]');
+                opt.classList.toggle("selected", radio.checked);
+            });
+
+            const selected = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+            if (selected === "cod") {
+                payBtn.innerText = "Place Order — ₹@grandTotal.ToString("F0")";
+                paymentNote.innerHTML = '<i class="fas fa-truck me-1"></i> Aap order delivery ke waqt cash mein payment kar sakte hain.';
+            } else {
+                payBtn.innerText = "Pay Now — ₹@grandTotal.ToString("F0")";
+                paymentNote.innerHTML = '<i class="fas fa-shield-alt me-1"></i> Pay securely with Safepay — Debit/Credit card aur mobile wallets sab accept hote hain.';
+            }
+        }
+
+        paymentOptions.forEach(opt => {
+            opt.addEventListener("click", function () {
+                this.querySelector('input[type="radio"]').checked = true;
+                updateSelection();
+            });
+        });
+
+        payBtn.addEventListener("click", function () {
+            const btn = this;
+            const errorEl = document.getElementById("checkout-error");
+            const loadingEl = document.getElementById("checkout-loading");
+
+            const fields = ["customerName", "customerEmail", "customerPhone", "shippingAddress", "city", "postalCode"];
+            for (const id of fields) {
+                const val = document.getElementById(id).value.trim();
+                if (!val) {
+                    errorEl.innerText = "Please fill in all billing fields first.";
+                    document.getElementById(id).focus();
+                    return;
+                }
+            }
+            errorEl.innerText = "";
+            btn.disabled = true;
+            loadingEl.style.display = "block";
+
+            const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
+            const token = tokenElement ? tokenElement.value : '';
+            const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+            const body = new URLSearchParams({
+                customerName: document.getElementById("customerName").value,
+                customerEmail: document.getElementById("customerEmail").value,
+                customerPhone: document.getElementById("customerPhone").value,
+                shippingAddress: document.getElementById("shippingAddress").value,
+                city: document.getElementById("city").value,
+                postalCode: document.getElementById("postalCode").value
+            });
+
+            // COD ke liye alag endpoint, Card/Wallet ke liye Safepay wala endpoint
+            const endpoint = selectedMethod === "cod"
+                ? '/Checkout/PlaceCodOrder'
+                : '/Checkout/InitiateSafepayCheckout';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: body
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    window.location.href = result.checkoutUrl || result.redirectUrl;
+                } else {
+                    btn.disabled = false;
+                    loadingEl.style.display = "none";
+                    errorEl.innerText = result.message || "Something went wrong. Please try again.";
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                loadingEl.style.display = "none";
+                errorEl.innerText = "Server communication error.";
+            });
+        });
+    </script>
+}

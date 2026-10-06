@@ -1,0 +1,268 @@
+﻿@model SanaNoor_Brand.Models.Product
+
+@{
+    ViewData["Title"] = "Product Details";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-eye me-2"></i>Product Details</h2>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.ProductId" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- ========== PRODUCT IMAGES GALLERY ========== -->
+        <div class="col-md-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-images me-2"></i>Product Images</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ProductColors != null && Model.ProductColors.Any(c => c.Images != null && c.Images.Any()))
+                    {
+                        <!-- Main Image (first image of first color) -->
+                        var firstColor = Model.ProductColors.FirstOrDefault(c => c.Images != null && c.Images.Any());
+                        var firstImage = firstColor?.Images?.FirstOrDefault()?.ImagePath;
+
+                        <div class="text-center mb-3">
+                            @if (!string.IsNullOrEmpty(firstImage))
+                            {
+                                <img src="@firstImage" class="img-fluid rounded border" style="max-height: 400px; width: 100%; object-fit: contain;" alt="@Model.Name" id="mainProductImage">
+                            }
+                            else
+                            {
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                                    <i class="fas fa-image fa-4x text-muted"></i>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- All Images Thumbnails -->
+                        <div class="mt-3">
+                            <label class="fw-bold mb-2">All Images:</label>
+                            <div class="row g-2">
+                                @foreach (var color in Model.ProductColors.Where(c => c.Images != null && c.Images.Any()))
+                                {
+                                    foreach (var img in color.Images)
+                                    {
+                                        <div class="col-4 col-md-3">
+                                            <div class="position-relative">
+                                                <img src="@img.ImagePath"
+                                                     class="img-thumbnail"
+                                                     style="height: 100px; width: 100%; object-fit: cover; cursor: pointer;"
+                                                     onclick="document.getElementById('mainProductImage').src='@img.ImagePath'"
+                                                     title="@color.ColorName">
+                                                @if (img.IsPrimary)
+                                                {
+                                                    <span class="badge bg-primary position-absolute top-0 start-0" style="font-size: 10px;">Primary</span>
+                                                }
+                                                <small class="d-block text-truncate">@color.ColorName</small>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Color Variant Circles -->
+                        <div class="mt-3">
+                            <label class="fw-bold">Color Variants:</label>
+                            <div class="d-flex flex-wrap">
+                                @foreach (var color in Model.ProductColors)
+                                {
+                                    <div class="text-center me-3 mb-2" title="@color.ColorName">
+                                        <div class="color-circle" style="width: 40px; height: 40px; background-color: @color.ColorCode; border-radius: 50%; border: 2px solid #ddd;"></div>
+                                        <small>@color.ColorName</small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No images available</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== PRODUCT INFO ========== -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Product Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th style="width: 200px;">Product ID</th>
+                            <td>@Model.ProductId</td>
+                        </tr>
+                        <tr>
+                            <th>Product Name</th>
+                            <td>@Model.Name</td>
+                        </tr>
+                        <tr>
+                            <th>SKU</th>
+                            <td><span class="badge bg-secondary">@Model.SKU</span></td>
+                        </tr>
+                        <tr>
+                            <th>Price</th>
+                            <td>
+                                @if (Model.HasDiscount)
+                                {
+                                    <span class="text-decoration-line-through text-muted me-2">₹@Model.Price.ToString("N0")</span>
+                                    <span class="fw-bold text-danger">₹@Model.GetDiscountedPrice().ToString("N0")</span>
+                                    <span class="badge bg-success ms-2">@Model.Discount?.GetDisplayValue() OFF</span>
+                                }
+                                else
+                                {
+                                    <span class="fw-bold">₹@Model.Price.ToString("N0")</span>
+                                }
+                            </td>
+                        </tr>
+                        @if (Model.ComparePrice.HasValue)
+                        {
+                            <tr>
+                                <th>Compare Price</th>
+                                <td>₹@Model.ComparePrice.Value.ToString("N0")</td>
+                            </tr>
+                        }
+                        <tr>
+                            <th>Category</th>
+                            <td>@(Model.Category?.CategoryName ?? "Uncategorized")</td>
+                        </tr>
+                        <tr>
+                            <th>Brand</th>
+                            <td>@(Model.Brand ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <th>Fabric</th>
+                            <td>@(Model.Fabric ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <th>Product Type</th>
+                            <td>@(Model.ProductType ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <th>Pieces</th>
+                            <td>@(Model.Pieces ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <th>Design Code</th>
+                            <td>@(Model.DesignCode ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <th>Stock Quantity</th>
+                            <td>
+                                @if (Model.StockQuantity > 0)
+                                {
+                                    <span class="badge bg-success">@Model.StockQuantity in stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of stock</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                @if (Model.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created At</th>
+                            <td>@Model.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</td>
+                        </tr>
+                        <tr>
+                            <th>Last Updated</th>
+                            <td>@Model.UpdatedAt.ToString("dd MMM yyyy, hh:mm tt")</td>
+                        </tr>
+                    </table>
+
+                    <!-- 3 Piece Details (if available) -->
+                    @if (Model.ShirtLength.HasValue || Model.TrouserLength.HasValue || Model.DupattaLength.HasValue)
+                    {
+                        <h5 class="mt-4 mb-3">3 Piece Details</h5>
+                        <table class="table table-bordered">
+                            @if (Model.ShirtLength.HasValue)
+                            {
+                                <tr><th>Shirt Length</th><td>@Model.ShirtLength cm</td></tr>
+                            }
+                            @if (Model.TrouserLength.HasValue)
+                            {
+                                <tr><th>Trouser Length</th><td>@Model.TrouserLength cm</td></tr>
+                            }
+                            @if (Model.DupattaLength.HasValue)
+                            {
+                                <tr><th>Dupatta Length</th><td>@Model.DupattaLength m</td></tr>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.ShirtFabric))
+                            {
+                                <tr><th>Shirt Fabric</th><td>@Model.ShirtFabric</td></tr>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.TrouserFabric))
+                            {
+                                <tr><th>Trouser Fabric</th><td>@Model.TrouserFabric</td></tr>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.DupattaFabric))
+                            {
+                                <tr><th>Dupatta Fabric</th><td>@Model.DupattaFabric</td></tr>
+                            }
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Description Section -->
+    @if (!string.IsNullOrEmpty(Model.FullDescription))
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-align-left me-2"></i>Description</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>@Model.FullDescription</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Disclaimer (if available) -->
+    @if (!string.IsNullOrEmpty(Model.Disclaimer))
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Disclaimer</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">@Model.Disclaimer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

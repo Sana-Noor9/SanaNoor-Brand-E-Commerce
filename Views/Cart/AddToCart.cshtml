@@ -1,0 +1,379 @@
+﻿@model List<SanaNoor_Brand.Models.Cart>
+@{
+    ViewData["Title"] = "Shopping Cart";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    decimal subtotal = 0;
+}
+
+<main class="main">
+
+    <!-- HEADER -->
+    <div class="page-header text-center" style="background-image: url('@Url.Content("~/Website/assets/images/page-header-bg.jpg")')">
+        <div class="container">
+            <h1 class="page-title">Shopping Cart<span>Shop</span></h1>
+        </div>
+    </div>
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-nav">
+        <div class="container">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">Home</a></li>
+                <li class="breadcrumb-item"><a href="@Url.Action("Index", "Product")">Shop</a></li>
+                <li class="breadcrumb-item active">Shopping Cart</li>
+            </ol>
+        </div>
+    </nav>
+
+    <div class="page-content">
+        <div class="container">
+            <div class="row">
+
+                <!-- CART TABLE -->
+                <div class="col-lg-9">
+
+                    @if (!Model.Any())
+                    {
+                        <div class="alert alert-info">
+                            Your cart is empty.
+                            <a href="@Url.Action("Index", "Product")">Continue shopping</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="table table-cart">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    var product = item.Product;
+                                    var color = item.ProductColor;
+
+                                    // ✅ FIX: Safe image path handling
+                                    string imagePath = "default.jpg";
+                                    if (color?.Images != null && color.Images.Any())
+                                    {
+                                        imagePath = color.Images.First().ImagePath;
+                                    }
+                                    var imageUrl = Url.Content("~/uploads/products/" + imagePath);
+
+                                    var price = item.UnitPrice;
+                                    var total = price * item.Quantity;
+                                    subtotal += total;
+
+                                    <tr data-cart-id="@item.CartId">
+                                        <td>
+                                            <div class="product-info">
+                                                <img src="@imageUrl" alt="@product?.Name" width="80" height="80" style="object-fit: cover;" />
+                                                <div>
+                                                    <strong>@product?.Name</strong><br />
+                                                    <small>Color: @color?.ColorName</small><br />
+                                                    <small>Size: @item.Size</small>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <td class="price-col">@price.ToString("C")</td>
+
+                                        <td>
+                                            <div class="quantity-control">
+                                                <button class="btn-qty-minus" onclick="updateCartItem(@item.CartId, @(item.Quantity - 1))">-</button>
+                                                <input type="number"
+                                                       id="qty-@item.CartId"
+                                                       value="@item.Quantity"
+                                                       min="1"
+                                                       max="10"
+                                                       class="qty-input"
+                                                       data-cart-id="@item.CartId"
+                                                       data-price="@price" />
+                                                <button class="btn-qty-plus" onclick="updateCartItem(@item.CartId, @(item.Quantity + 1))">+</button>
+                                            </div>
+                                        </td>
+
+                                        <td class="total-col" id="total-@item.CartId">
+                                            @total.ToString("C")
+                                        </td>
+
+                                        <td>
+                                            <button class="btn-remove" onclick="removeCartItem(@item.CartId)">✕</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+
+                </div>
+
+                <!-- SUMMARY -->
+                <div class="col-lg-3">
+                    <div class="cart-summary">
+                        <h4>Cart Total</h4>
+
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">@subtotal.ToString("C")</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Shipping:</span>
+                            <span>Calculated at checkout</span>
+                        </div>
+
+                        <div class="summary-row total">
+                            <span>Total:</span>
+                            <span id="total">@subtotal.ToString("C")</span>
+                        </div>
+
+                        <hr />
+
+                        @if (Model.Any())
+                        {
+                            <a href="@Url.Action("Checkout", "Order")" class="btn btn-primary btn-block">
+                                Proceed to Checkout
+                            </a>
+                        }
+
+                        <a href="@Url.Action("Index", "Product")" class="btn btn-outline-secondary btn-block mt-2">
+                            Continue Shopping
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    // ✅ Format currency
+    function formatCurrency(amount) {
+        return '$' + amount.toFixed(2);
+    }
+
+    // ✅ Parse currency string to number
+    function parseCurrency(str) {
+        if (!str) return 0;
+        return parseFloat(str.replace(/[^0-9.-]+/g, '')) || 0;
+    }
+
+    // ✅ Update cart item via AJAX (matches your controller)
+    async function updateCartItem(cartId, newQuantity) {
+        if (newQuantity < 1) {
+            Swal.fire('Error', 'Minimum quantity is 1', 'error');
+            return;
+        }
+
+        if (newQuantity > 10) {
+            Swal.fire('Error', 'Maximum quantity is 10', 'error');
+            return;
+        }
+
+        const requestData = {
+            cartId: cartId,
+            quantity: newQuantity
+        };
+
+        try {
+            const response = await fetch('@Url.Action("UpdateCartItem", "Cart")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update quantity input
+                const qtyInput = document.getElementById(`qty-${cartId}`);
+                if (qtyInput) qtyInput.value = newQuantity;
+
+                // Update total for this row
+                const totalCell = document.getElementById(`total-${cartId}`);
+                if (totalCell) {
+                    const price = parseFloat(qtyInput.dataset.price);
+                    const newTotal = price * newQuantity;
+                    totalCell.innerText = formatCurrency(newTotal);
+                }
+
+                // Update overall totals
+                updateTotals();
+
+                // Show success message
+                Swal.fire('Updated!', 'Cart updated successfully', 'success');
+            } else {
+                Swal.fire('Error', result.message || 'Failed to update cart', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Something went wrong', 'error');
+        }
+    }
+
+    // ✅ Remove cart item
+    async function removeCartItem(cartId) {
+        const result = await Swal.fire({
+            title: 'Remove item?',
+            text: 'Are you sure you want to remove this item?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, remove it!'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch('@Url.Action("RemoveItem", "Cart")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({ cartId: cartId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Remove row from table
+                    const row = document.querySelector(`tr[data-cart-id="${cartId}"]`);
+                    if (row) row.remove();
+
+                    // Check if table is empty now
+                    const tbody = document.querySelector('tbody');
+                    if (tbody && tbody.children.length === 0) {
+                        location.reload(); // Reload to show empty cart message
+                    } else {
+                        updateTotals();
+                    }
+
+                    Swal.fire('Removed!', 'Item removed from cart', 'success');
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to remove item', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Something went wrong', 'error');
+            }
+        }
+    }
+
+    // ✅ Update total amounts
+    function updateTotals() {
+        let subtotal = 0;
+
+        document.querySelectorAll('.total-col').forEach(cell => {
+            subtotal += parseCurrency(cell.innerText);
+        });
+
+        document.getElementById('subtotal').innerText = formatCurrency(subtotal);
+        document.getElementById('total').innerText = formatCurrency(subtotal);
+    }
+
+    // ✅ For manual input change
+    document.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const cartId = parseInt(this.dataset.cartId);
+            const newQty = parseInt(this.value);
+            updateCartItem(cartId, newQty);
+        });
+    });
+</script>
+
+<style>
+    /* Cart page styles */
+    .product-info {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-qty-minus, .btn-qty-plus {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #ddd;
+        background: #f5f5f5;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+
+    .qty-input {
+        width: 60px;
+        text-align: center;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .btn-remove {
+        background: none;
+        border: none;
+        color: #ff0000;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 5px 10px;
+    }
+
+    .btn-remove:hover {
+        color: #cc0000;
+    }
+
+    .cart-summary {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .summary-row.total {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .btn-block {
+        width: 100%;
+        margin-top: 10px;
+    }
+</style>
+@*         document.querySelectorAll('.total-col').forEach(cell => { *@
+@*             subtotal += parseCurrency(cell.innerText); *@
+@*         }); *@
+
+@*         document.getElementById('subtotal').innerText = formatCurrency(subtotal); *@
+@*         document.getElementById('total').innerText = formatCurrency(subtotal); *@
+@*     } *@
+
+@*     function removeItem(id) { *@
+@*         alert("Remove item ID: " + id); *@
+@*     } *@
+
+@* </script> *@

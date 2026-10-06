@@ -1,0 +1,64 @@
+﻿@model IEnumerable<SanaNoor_Brand.Models.Category>
+
+@{
+    ViewData["Title"] = "Categories";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <h3 class="text-center mb-4">Category List</h3>
+
+                    <div class="text-end mb-3">
+                        <a asp-action="Create" class="btn btn-success">
+                            + Create Category
+                        </a>
+                    </div>
+
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Category Name</th>
+                                <th>Parent Category</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.ImagePath))
+                                        {
+                                            <img src="@Url.Content("~" + item.ImagePath)"
+                                                 style="width:50px; height:50px; object-fit:cover; border-radius:5px;" />
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark">No Image</span>
+                                        }
+                                    </td>
+                                    <td>@item.CategoryName</td>
+                                    <td>
+                                        @(item.ParentCategory?.CategoryName ?? "Main Category")
+                                    </td>
+                                    <td>
+                                        <a asp-action="Edit" asp-route-id="@item.CategoryId">Edit</a> |
+                                        <a asp-action="Delete" asp-route-id="@item.CategoryId">Delete</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

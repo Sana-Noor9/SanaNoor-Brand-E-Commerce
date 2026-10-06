@@ -1,0 +1,433 @@
+﻿@model List<SanaNoor_Brand.Models.Cart>
+@{
+    ViewData["Title"] = "Shopping Cart";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .cart-item {
+        transition: .3s;
+    }
+
+        .cart-item:hover {
+            background: #fafafa;
+        }
+
+    .card {
+        border-radius: 15px;
+    }
+
+    .input-group .btn {
+        width: 40px;
+    }
+
+    .input-group input {
+        border-left: 0;
+        border-right: 0;
+    }
+
+    .btn-primary {
+        background: #c79a63;
+        border: none;
+    }
+
+        .btn-primary:hover {
+            background: #b8874f;
+        }
+
+    .text-primary {
+        color: #c79a63 !important;
+    }
+
+    .card-header {
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    /* ✅ Fixed cart item layout - uses grid so nothing overlaps at any screen size */
+    .cart-item {
+        display: grid;
+        grid-template-columns: 110px 1fr auto auto;
+        align-items: center;
+        column-gap: 1.25rem;
+        row-gap: .75rem;
+        padding: 1.5rem;
+    }
+
+    .cart-item-img img {
+        width: 110px;
+        height: 130px;
+        object-fit: cover;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,.15);
+        display: block;
+    }
+
+    .cart-item-details {
+        min-width: 0; /* allows text to wrap instead of pushing siblings */
+    }
+
+    .cart-item-qty .input-group {
+        width: 150px;
+    }
+
+    .cart-item-total {
+        text-align: right;
+        min-width: 110px;
+        white-space: nowrap;
+    }
+
+    /* Stack neatly on small screens instead of squeezing into 4 columns */
+    @@media (max-width: 767.98px) {
+        .cart-item {
+            grid-template-columns: 90px 1fr;
+            grid-template-areas:
+                "img details"
+                "qty total";
+        }
+
+        .cart-item-img {
+            grid-area: img;
+        }
+
+        .cart-item-details {
+            grid-area: details;
+        }
+
+        .cart-item-qty {
+            grid-area: qty;
+            align-self: center;
+        }
+
+        .cart-item-total {
+            grid-area: total;
+            align-self: center;
+        }
+    }
+</style>
+
+@Html.AntiForgeryToken()
+
+<div class="cart-page py-4 py-md-5">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active">Shopping Cart</li>
+            </ol>
+        </nav>
+
+        @if (!Model.Any())
+        {
+            <!-- Empty Cart -->
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-4 d-block"></i>
+                <h3 class="mb-2">Your cart is empty</h3>
+                <p class="text-muted mb-4">Explore our collection and add items to your cart.</p>
+                <a href="/" class="btn btn-primary btn-lg px-5">
+                    <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <!-- Cart Items -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-shopping-cart me-2 text-primary"></i>
+                                    My Cart (@Model.Sum(c => c.Quantity) items)
+                                </h5>
+                                <button class="btn btn-outline-danger btn-sm" onclick="clearAllCart()">
+                                    <i class="fas fa-trash me-1"></i>Clear All
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            @foreach (var item in Model)
+                            {
+                                var primaryImage = item.ProductColor?.Images?.FirstOrDefault(i => i.IsPrimary)
+                                ?? item.ProductColor?.Images?.FirstOrDefault();
+                                var imagePath = primaryImage?.ImagePath ?? "/images/no-image.png";
+                                var hasDiscount = item.Product?.HasDiscount ?? false;
+                                var originalPrice = item.Product?.Price ?? item.UnitPrice;
+
+                                <div class="cart-item border-bottom" id="cart-item-@item.CartId">
+                                    <!-- Image -->
+                                    <a href="/Product/View/@item.ProductId" class="cart-item-img">
+                                        <img src="@imagePath" alt="@item.Product?.Name">
+                                    </a>
+
+                                    <!-- Details -->
+                                    <div class="cart-item-details">
+                                        <h5 class="fw-bold mb-2">
+                                            <a href="/Product/View/@item.ProductId" class="text-dark text-decoration-none">
+                                                @item.Product?.Name
+                                            </a>
+                                        </h5>
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2 small text-muted">
+                                            <span class="d-flex align-items-center">
+                                                <span class="rounded-circle me-1"
+                                                      style="background-color: @item.ProductColor?.ColorCode; width: 14px; height: 14px; border: 1px solid #ccc;"></span>
+                                                @item.ProductColor?.ColorName
+                                            </span>
+                                            @if (!string.IsNullOrEmpty(item.Size))
+                                            {
+                                                <span>| Size: <strong>@item.Size</strong></span>
+                                            }
+                                            @if (item.ProductColor?.ExtraPrice > 0)
+                                            {
+                                                <span class="text-warning">| +₹@item.ProductColor.ExtraPrice.Value.ToString("F0")</span>
+                                            }
+                                        </div>
+
+                                        <!-- Price -->
+                                        <div>
+                                            <span class="fw-bold text-primary fs-5">
+                                                ₹@(item.UnitPrice.ToString("F0"))
+                                            </span>
+                                            @if (hasDiscount)
+                                            {
+                                                <span class="text-decoration-line-through text-muted small ms-2">₹@originalPrice.ToString("F0")</span>
+                                                <span class="badge bg-success ms-1">Save ₹@((originalPrice - item.UnitPrice).ToString("F0"))</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Quantity -->
+                                    <div class="cart-item-qty">
+                                        <div class="input-group shadow-sm">
+                                            <button class="btn btn-outline-secondary" onclick="updateQty(@item.CartId, @(item.Quantity - 1))">
+                                                <i class="fas fa-minus fa-xs"></i>
+                                            </button>
+                                            <input type="number" class="form-control text-center fw-bold"
+                                                   value="@item.Quantity" min="1" max="10" readonly
+                                                   id="qty-@item.CartId">
+                                            <button class="btn btn-light border" onclick="updateQty(@item.CartId, @(item.Quantity + 1))">
+                                                <i class="fas fa-plus fa-xs"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Total & Remove -->
+                                    <div class="cart-item-total">
+                                        <div class="fw-bold fs-5 text-dark">
+                                            ₹@((item.UnitPrice * item.Quantity).ToString("F0"))
+                                        </div>
+                                        <button class="btn btn-link text-danger p-0 mt-1 small" onclick="removeItem(@item.CartId)">
+                                            <i class="fas fa-trash-alt me-1"></i>Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow rounded-4 sticky-top" style="top: 100px;">
+                        <div class="card-header bg-white py-4 border-0"
+                             style="background:#c79a63;">
+                            <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            @{
+                                var subTotal = Model.Sum(c => c.UnitPrice * c.Quantity);
+                                var totalSaved = Model.Sum(c =>
+                                {
+                                    var orig = c.Product?.Price ?? c.UnitPrice;
+                                    return (orig - c.UnitPrice) * c.Quantity;
+                                });
+                                var shipping = subTotal >= 3000 ? 0 : 200;
+                                var grandTotal = subTotal + shipping;
+                            }
+
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Subtotal (@Model.Sum(c => c.Quantity) items)</span>
+                                <span>₹@subTotal.ToString("F0")</span>
+                            </div>
+
+                            @if (totalSaved > 0)
+                            {
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>You Save</span>
+                                    <span>-₹@(totalSaved.ToString("F0"))</span>
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Shipping</span>
+                                @if (shipping == 0)
+                                {
+                                    <span class="text-success fw-bold">FREE</span>
+                                }
+                                else
+                                {
+                                    <span>₹@shipping</span>
+                                }
+                            </div>
+
+                            @if (shipping > 0)
+                            {
+                                <small class="text-muted d-block mb-3">
+                                    <i class="fas fa-info-circle me-1"></i>Add <span>₹@((3000 - subTotal).ToString("F0"))</span> more for FREE shipping
+                                </small>
+                            }
+
+                            <hr>
+
+                            <div class="d-flex justify-content-between mb-4">
+                                <span class="fs-5 fw-bold">Total</span>
+                                <span class="fs-5 fw-bold text-primary">
+                                    ₹@(grandTotal.ToString("F0"))
+                                </span>
+                            </div>
+
+                            <a asp-action="Index" asp-controller="Checkout" class="btn btn-dark btn-lg rounded-pill w-100 mb-2">
+                                <i class="fas fa-lock me-2"></i>Proceed to Checkout
+                            </a>
+
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-dark rounded-pill w-100">
+                                <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                            </a>
+
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-shield-alt me-1"></i>100% Secure Payment
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ✅ Get CSRF Token
+        function getToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        }
+
+        // ✅ Update Quantity
+        function updateQty(cartId, newQuantity) {
+            if (newQuantity < 1) {
+                Swal.fire('Error', 'Minimum quantity is 1', 'error');
+                return;
+            }
+
+            if (newQuantity > 10) {
+                Swal.fire('Error', 'Maximum quantity is 10', 'error');
+                return;
+            }
+
+            const token = getToken();
+
+            fetch('/Cart/UpdateQuantity', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: 'cartId=' + cartId + '&quantity=' + newQuantity
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to update cart', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Something went wrong', 'error');
+            });
+        }
+
+        // ✅ Remove Item
+        function removeItem(cartId) {
+            Swal.fire({
+                title: 'Remove item?',
+                text: 'Are you sure you want to remove this item?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, remove it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const token = getToken();
+
+                    fetch('/Cart/RemoveItem', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        },
+                        body: 'cartId=' + cartId
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Removed!', 'Item removed from cart', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error', data.message || 'Failed to remove item', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire('Error', 'Something went wrong', 'error');
+                    });
+                }
+            });
+        }
+
+        // ✅ Clear All Cart
+        function clearAllCart() {
+            Swal.fire({
+                title: 'Clear cart?',
+                text: 'Are you sure you want to remove all items?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, clear all!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const token = getToken();
+
+                    fetch('/Cart/ClearCart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Cleared!', 'Cart has been cleared', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error', 'Failed to clear cart', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire('Error', 'Something went wrong', 'error');
+                    });
+                }
+            });
+        }
+    </script>
+}

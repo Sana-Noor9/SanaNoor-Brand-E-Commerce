@@ -1,0 +1,401 @@
+﻿@{
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+@model SanaNoor_Brand.Models.Product
+
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="col-lg-9 col-md-10 col-sm-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>Add New Product
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="productForm" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <!-- ========== BASIC INFO ========== -->
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Product Name *</label>
+                        <input type="text" class="form-control" asp-for="Name" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">SKU *</label>
+                        <input type="text" class="form-control" asp-for="SKU" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Price (₹) *</label>
+                        <input type="number" class="form-control" asp-for="Price" step="0.01" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Compare Price</label>
+                        <input type="number" class="form-control" asp-for="ComparePrice" step="0.01">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Category</label>
+                        <select class="form-select" asp-for="CategoryId">
+                            <option value="">Select Category</option>
+                            @foreach (var cat in ViewBag.Categories)
+                            {
+                                <option value="@cat.CategoryId">@cat.CategoryName</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                    <!-- ========== 3 PIECE DETAILS ========== -->
+                    <h5 class="mt-4 mb-3">
+                        <i class="fas fa-tshirt me-2"></i>3 Piece Details
+                    </h5>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Shirt Length (cm)</label>
+                                    <input type="number" class="form-control" asp-for="ShirtLength" step="0.01">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Trouser Length (cm)</label>
+                                    <input type="number" class="form-control" asp-for="TrouserLength" step="0.01">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Dupatta Length (m)</label>
+                                    <input type="number" class="form-control" asp-for="DupattaLength" step="0.01">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Shirt Fabric</label>
+                                    <input type="text" class="form-control" asp-for="ShirtFabric">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Trouser Fabric</label>
+                                    <input type="text" class="form-control" asp-for="TrouserFabric">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Dupatta Fabric</label>
+                                    <input type="text" class="form-control" asp-for="DupattaFabric">
+                                </div>
+                            </div>
+                            <!-- Extra fields like Pieces, Occasion etc. -->
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Pieces</label>
+                                    <input type="text" class="form-control" asp-for="Pieces">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Occasion</label>
+                                    <input type="text" class="form-control" asp-for="Occasion">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Design Code</label>
+                                    <input type="text" class="form-control" asp-for="DesignCode">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Brand</label>
+                        <input type="text" class="form-control" asp-for="Brand">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Fabric</label>
+                        <input type="text" class="form-control" asp-for="Fabric">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Stock</label>
+                        <input type="number" class="form-control" asp-for="StockQuantity" value="10">
+                    </div>
+                </div>
+
+                <!-- ========== COLOR VARIANTS WITH IMAGES ========== -->
+                <h5 class="mt-4 mb-3">
+                    <i class="fas fa-palette me-2"></i>Color Variants & Images
+                </h5>
+                <div id="colorVariantsContainer"></div>
+
+                <button type="button" class="btn btn-outline-primary mb-4" onclick="addColorVariant()">
+                    <i class="fas fa-plus me-2"></i>Add Color Variant
+                </button>
+
+                <!-- ========== DESCRIPTION ========== -->
+                <h5 class="mt-3 mb-3">Description</h5>
+                <div class="mb-3">
+                    <textarea class="form-control" asp-for="FullDescription" rows="4"
+                              placeholder="Product description..."></textarea>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" asp-for="IsActive" checked>
+                    <label class="form-check-label">Active Product</label>
+                </div>
+
+                <!-- ========== SUBMIT BUTTONS ========== -->
+                <button type="submit" class="btn btn-primary px-5">
+                    <i class="fas fa-save me-2"></i>Save Product
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        let colorCount = 0;
+
+        // ========== ADD COLOR VARIANT ==========
+        function addColorVariant() {
+            colorCount++;
+            const id = `color_${colorCount}`;
+
+            const html = `
+                <div class="card mb-3 border-primary" id="${id}">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">
+                            <i class="fas fa-palette me-2"></i>Color Variant #${colorCount}
+                        </span>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeColorVariant('${id}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Color Name *</label>
+                                <input type="text" class="form-control color-name" placeholder="e.g., Black, Red" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Color Code</label>
+                                <div class="d-flex">
+                                    <input type="color" class="form-control form-control-color color-code" value="#000000" style="width: 60px;">
+                                    <input type="text" class="form-control ms-2 color-code-text" value="#000000">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Stock</label>
+                                <input type="number" class="form-control color-stock" value="10" min="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Sizes (comma)</label>
+                                <input type="text" class="form-control color-sizes" value="S,M,L,XL">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Extra Price (₹)</label>
+                                <input type="number" class="form-control color-extra-price" value="0" step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <!-- ========== IMAGE UPLOAD ========== -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-primary">
+                                <i class="fas fa-images me-2"></i>Product Images *
+                                <span class="badge bg-primary">Required</span>
+                            </label>
+                            <input type="file" class="form-control color-images" multiple accept="image/*" required>
+                            <small class="text-muted">Select multiple images. First = Primary.</small>
+
+                            <!-- Image Preview -->
+                            <div class="row mt-2" id="preview_${colorCount}"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#colorVariantsContainer').append(html);
+
+            // Sync color picker
+            $(`#${id} .color-code`).on('input', function() {
+                $(this).closest('.d-flex').find('.color-code-text').val($(this).val());
+            });
+
+            $(`#${id} .color-code-text`).on('input', function() {
+                $(this).closest('.d-flex').find('.color-code').val($(this).val());
+            });
+
+            // Image preview
+            $(`#${id} .color-images`).on('change', function() {
+                const preview = $(`#preview_${colorCount}`);
+                preview.empty();
+
+                for (let i = 0; i < this.files.length; i++) {
+                    const file = this.files[i];
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const col = i === 0 ? 12 : 6;
+                        preview.append(`
+                            <div class="col-${col} col-md-3 mb-2">
+                                <div class="position-relative">
+                                    <img src="${e.target.result}" class="img-fluid rounded border"
+                                         style="height: 80px; width: 100%; object-fit: cover;">
+                                    ${i === 0 ? '<span class="badge bg-primary position-absolute top-0 start-0">Primary</span>' : ''}
+                                </div>
+                            </div>
+                        `);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // ========== REMOVE COLOR VARIANT ==========
+        function removeColorVariant(id) {
+            Swal.fire({
+                title: 'Remove?',
+                text: 'This will be deleted!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $('#' + id).remove();
+                }
+            });
+        }
+
+        // ========== FORM SUBMIT - FIXED VERSION ==========
+        $('#productForm').on('submit', async function(e) {
+            e.preventDefault();
+
+            // Check if any color variant exists
+            if ($('.card[id^="color_"]').length === 0) {
+                Swal.fire('Error!', 'Please add at least one color variant', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Please wait while we upload images',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            const colorVariants = {};
+            let isValid = true;
+            const colorCards = $('.card[id^="color_"]');
+
+            // Process each color variant SYNCHRONOUSLY
+            for (let index = 0; index < colorCards.length; index++) {
+                const card = colorCards[index];
+                const $card = $(card);
+
+                const colorName = $card.find('.color-name').val().trim();
+                if (!colorName) {
+                    Swal.fire('Error!', 'Please enter color name', 'error');
+                    isValid = false;
+                    break;
+                }
+
+                const files = $card.find('.color-images')[0].files;
+                if (files.length === 0) {
+                    Swal.fire('Error!', `Please select images for ${colorName}`, 'error');
+                    isValid = false;
+                    break;
+                }
+
+                // Convert images to base64 - AWAIT each file
+                const images = [];
+                for (let i = 0; i < files.length; i++) {
+                    try {
+                        const base64 = await fileToBase64(files[i]);
+                        images.push(base64);
+                    } catch (error) {
+                        Swal.fire('Error!', 'Failed to process image', 'error');
+                        isValid = false;
+                        break;
+                    }
+                }
+
+                if (!isValid) break;
+
+                // Get sizes
+                let sizes = $card.find('.color-sizes').val()
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s);
+
+                colorVariants[colorName] = {
+                    ColorCode: $card.find('.color-code').val() || '#000000',
+                    Stock: parseInt($card.find('.color-stock').val()) || 0,
+                    ExtraPrice: parseFloat($card.find('.color-extra-price').val()) || 0,
+                    Sizes: sizes.length ? sizes : ['S', 'M', 'L', 'XL'],
+                    Images: images
+                };
+            }
+
+            if (!isValid) {
+                Swal.close();
+                return;
+            }
+
+            // Prepare form data
+            const formData = new FormData(this);
+            formData.append('ColorVariantsJson', JSON.stringify(colorVariants));
+
+            // Submit
+            $.ajax({
+                url: '@Url.Action("Create", "Product")',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = response.redirectUrl || '@Url.Action("Index", "Product")';
+                        });
+                    } else {
+                        Swal.fire('Error!', response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire('Error!', xhr.responseJSON?.message || 'Something went wrong', 'error');
+                }
+            });
+        });
+
+        // ========== HELPER: Convert File to Base64 ==========
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ========== INITIALIZE ==========
+        $(document).ready(function() {
+            addColorVariant();
+
+            $(document).on('input', '.color-code-text', function() {
+                $(this).closest('.d-flex').find('.color-code').val($(this).val());
+            });
+        });
+    </script>
+}

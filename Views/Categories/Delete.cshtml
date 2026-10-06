@@ -1,0 +1,32 @@
+﻿
+@{
+    ViewData["Title"] = "Delete";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+@model SanaNoor_Brand.Models.Category
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger shadow-sm">
+                <div class="card-body text-center">
+                    <h3 class="text-danger mb-4">Delete Category?</h3>
+                    <p>Kya aap waqai <strong>@Model.CategoryName</strong> ko delete karna chahte hain?</p>
+
+                    @if (!string.IsNullOrEmpty(Model.ImagePath))
+                    {
+                        <img src="@Model.ImagePath" class="img-thumbnail mb-3" style="width:150px;" />
+                    }
+
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="CategoryId" />
+                        <button type="submit" class="btn btn-danger">Yes, Delete It!</button>
+                        <a asp-action="Index" class="btn btn-secondary">No, Go Back</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

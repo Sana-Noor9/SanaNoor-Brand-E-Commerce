@@ -1,0 +1,58 @@
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model SanaNoor_Brand.Models.Category
+
+@{
+    ViewData["Title"] = "Edit Category";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="text-center mb-4">Edit Category</h3>
+
+                    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                        <input type="hidden" asp-for="CategoryId" />
+
+                        <input type="hidden" asp-for="ImagePath" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Category Name</label>
+                            <input asp-for="CategoryName" class="form-control" />
+                            <span asp-validation-for="CategoryName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Parent Category</label>
+                            <select asp-for="ParentCategoryId"
+                                    asp-items="ViewBag.ParentCategoryId"
+                                    class="form-select">
+                                <option value="">-- Main Category --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Category Image</label>
+                            @if (!string.IsNullOrEmpty(Model.ImagePath))
+                            {
+                                <div class="mb-2">
+                                    <img src="@Model.ImagePath" alt="Current Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;" />
+                                    <p class="text-muted small">Current Image</p>
+                                </div>
+                            }
+                            <input type="file" name="imageFile" class="form-control" accept="image/*" />
+                            <span class="text-muted small">Nayi image upload karne ke liye select karein (Optional)</span>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Update</button>
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

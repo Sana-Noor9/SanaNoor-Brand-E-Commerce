@@ -1,0 +1,219 @@
+﻿@model List<SanaNoor_Brand.Models.Product>
+@{
+    ViewData["Title"] = "All Products";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var pageTitle = ViewBag.SelectedCategoryName as string ?? "All Products";
+    var wishlistedIds = ViewBag.WishlistedProductIds as HashSet<int> ?? new HashSet<int>();
+}
+
+@Html.AntiForgeryToken()
+
+<main class="main">
+    <div class="page-header text-center" style="background-image: url('~/Website/assets/images/page-header-bg.jpg')">
+        <div class="container">
+            <h1 class="page-title">@pageTitle</h1>
+        </div><!-- End .container -->
+    </div><!-- End .page-header -->
+
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-2">
+        <div class="container">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="@Url.Action("Allproduct", "Home")">Shop</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@pageTitle</li>
+            </ol>
+        </div><!-- End .container -->
+    </nav><!-- End .breadcrumb-nav -->
+
+    <div class="page-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-9">
+                    <div class="toolbox">
+                        <div class="toolbox-left">
+                            <div class="toolbox-info">
+                                Showing <span>@Model.Count</span> Products
+                            </div><!-- End .toolbox-info -->
+                        </div><!-- End .toolbox-left -->
+                    </div><!-- End .toolbox -->
+                    @if (!Model.Any())
+                    {
+                        <div class="text-center py-5">
+                            <h4>No products found in this category</h4>
+                            <a href="@Url.Action("Allproduct", "Home")" class="btn btn-outline-dark-2 mt-3"><span>View All Products</span></a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="products mb-3">
+                            <div class="row justify-content-center">
+                                @foreach (var product in Model)
+                                {
+                                    bool isWishlisted = wishlistedIds.Contains(product.ProductId);
+
+                                    <div class="col-6 col-md-4 col-lg-4 col-xl-3">
+                                        <div class="product product-7 text-center">
+                                            <figure class="product-media">
+                                                @if (product.HasDiscount)
+                                                {
+                                                    <span class="product-label label-sale">Sale</span>
+                                                }
+                                                else if (product.CreatedAt >= DateTime.Now.AddDays(-14))
+                                                {
+                                                    <span class="product-label label-new">New</span>
+                                                }
+                                                @if (product.Availability == "out-of-stock")
+                                                {
+                                                    <span class="product-label label-out">Out of Stock</span>
+                                                }
+
+                                                <a href="@Url.Action("detailproduct", "Home", new { id = product.ProductId })">
+                                                    <img src="@Url.Content(product.PrimaryImagePath ?? "~/uploads/products/default.jpg")" alt="@product.Name" class="product-image">
+                                                </a>
+
+                                                <div class="product-action-vertical">
+                                                    <a href="#"
+                                                       class="btn-product-icon btn-wishlist btn-expandable wishlist-btn @(isWishlisted ? "active" : "")"
+                                                       data-product-id="@product.ProductId">
+                                                        <span>@(isWishlisted ? "in wishlist" : "add to wishlist")</span>
+                                                    </a>
+                                                </div><!-- End .product-action-vertical -->
+
+                                                <div class="product-action">
+                                                    <a href="@Url.Action("detailproduct", "Home", new { id = product.ProductId })" class="btn-product btn-cart"><span>view product</span></a>
+                                                </div><!-- End .product-action -->
+                                            </figure><!-- End .product-media -->
+
+                                            <div class="product-body">
+                                                <div class="product-cat">
+                                                    <a href="#">@(product.Category?.CategoryName ?? "Uncategorized")</a>
+                                                </div><!-- End .product-cat -->
+                                                <h3 class="product-title">
+                                                    <a href="@Url.Action("detailproduct", "Home", new { id = product.ProductId })">@product.Name</a>
+                                                </h3><!-- End .product-title -->
+                                                <div class="product-price">
+                                                    @if (product.HasDiscount)
+                                                    {
+                                                        <span class="new-price">@product.FormattedDiscountedPrice</span>
+                                                        <span class="old-price">@product.FormattedPrice</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        @product.FormattedPrice
+                                                    }
+                                                </div><!-- End .product-price -->
+                                            </div><!-- End .product-body -->
+                                        </div><!-- End .product -->
+                                    </div>
+
+                                    <!-- End .col-sm-6 col-lg-4 col-xl-3 -->
+                                }
+                            </div><!-- End .row -->
+                        </div>
+
+                        <!-- End .products -->
+                    }
+                </div><!-- End .col-lg-9 -->
+
+                <aside class="col-lg-3 order-lg-first">
+                    <div class="sidebar sidebar-shop">
+                        <div class="widget widget-collapsible">
+                            <h3 class="widget-title">
+                                <a data-toggle="collapse" href="#widget-1" role="button" aria-expanded="true" aria-controls="widget-1">
+                                    Category
+                                </a>
+                            </h3><!-- End .widget-title -->
+
+                            <div class="collapse show" id="widget-1">
+                                <div class="widget-body">
+                                    <div class="filter-items">
+                                        <div class="filter-item">
+                                            <a href="@Url.Action("Allproduct", "Home")">All Products</a>
+                                        </div>
+                                        @foreach (var cat in ViewBag.AllCategories as List<SanaNoor_Brand.Models.Category> ?? new List<SanaNoor_Brand.Models.Category>())
+                                        {
+                                            <div class="filter-item">
+                                                <a href="@Url.Action("Allproduct", "Home", new { category = cat.Slug })">@cat.CategoryName</a>
+                                            </div>
+                                        }
+                                    </div><!-- End .filter-items -->
+                                </div><!-- End .widget-body -->
+                            </div><!-- End .collapse -->
+                        </div><!-- End .widget -->
+                        <div class="widget widget-collapsible">
+                            <h3 class="widget-title">
+                                <a data-toggle="collapse" href="#widget-2" role="button" aria-expanded="true" aria-controls="widget-2">
+                                    Colour
+                                </a>
+                            </h3><!-- End .widget-title -->
+
+                            <div class="collapse show" id="widget-2">
+                                <div class="widget-body">
+                                    <div class="filter-colors">
+                                        @{
+                                            var availableColors = ViewBag.AvailableColors as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+                                            var selectedColor = ViewBag.SelectedColor as string;
+                                            var currentCategorySlug = ViewBag.CurrentCategorySlug as string;
+                                        }
+                                        @foreach (var c in availableColors)
+                                        {
+                                            <a href="@Url.Action("Allproduct", "Home", new { category = currentCategorySlug, color = c.ColorName })"
+                                               class="@(selectedColor == c.ColorName ? "selected" : "")"
+                                               style="background: @(c.ColorCode ?? "#000000");"
+                                               title="@c.ColorName">
+                                                <span class="sr-only">@c.ColorName</span>
+                                            </a>
+                                        }
+                                    </div><!-- End .filter-colors -->
+                                    @if (!string.IsNullOrEmpty(selectedColor))
+                                    {
+                                        <a href="@Url.Action("Allproduct", "Home", new { category = currentCategorySlug })" class="d-block mt-2 small">Clear color filter</a>
+                                    }
+                                </div><!-- End .widget-body -->
+                            </div><!-- End .collapse -->
+                        </div><!-- End .widget -->
+                    </div><!-- End .sidebar sidebar-shop -->
+                </aside><!-- End .col-lg-3 -->
+            </div><!-- End .row -->
+        </div><!-- End .container -->
+    </div><!-- End .page-content -->
+</main><!-- End .main -->
+@section Scripts {
+    <script>
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.wishlist-btn');
+            if (!btn) return;
+            e.preventDefault();
+
+            const productId = btn.getAttribute('data-product-id');
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/Wishlist/Toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: new URLSearchParams({ productId })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.requiresLogin) {
+                    window.location.href = '/Account/Login';
+                    return;
+                }
+                if (!result.success) {
+                    alert(result.message || 'Something went wrong.');
+                    return;
+                }
+
+                btn.classList.toggle('active', result.isInWishlist);
+                btn.querySelector('span').innerText = result.isInWishlist ? 'in wishlist' : 'add to wishlist';
+
+                const badge = document.getElementById('wishlistCountBadge');
+                if (badge) badge.innerText = result.wishlistCount;
+            })
+            .catch(() => alert('Server communication error.'));
+        });
+    </script>
+}

@@ -1,0 +1,39 @@
+﻿@model SanaNoor_Brand.Models.Category
+
+@{
+    ViewData["Title"] = "Category Details";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="text-center mb-4">Category Details</h3>
+
+                    <p><b>Category Name:</b> @Model.CategoryName</p>
+                    <p><b>Parent Category:</b> @Model.ParentCategory?.CategoryName ?? "Main Category"</p>
+
+                    @if (Model.SubCategories != null && Model.SubCategories.Any())
+                    {
+                        <p><b>Sub Categories:</b></p>
+                        <ul>
+                            @foreach (var sub in Model.SubCategories)
+                            {
+                                <li>@sub.CategoryName</li>
+                            }
+                        </ul>
+                    }
+
+                    <div class="text-center mt-3">
+                        <a asp-action="Index" class="btn btn-secondary">Back</a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
